@@ -3,6 +3,13 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import DashboardPage from './pages/DashboardPage';
+import TasksPage from './pages/TasksPage';
+import TaskDetailPage from './pages/TaskDetailPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
+
 // Route Guards
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -24,14 +31,6 @@ const AdminRoute = ({ children }) => {
   return children;
 };
 
-// Placeholder page components for initial build test
-const TempPage = ({ title }) => (
-  <div className="container p-8">
-    <h1 className="text-2xl font-bold">{title} Page</h1>
-    <p className="text-muted-foreground mt-2">Frontend structure built and ready!</p>
-  </div>
-);
-
 export default function App() {
   const { user } = useAuth();
 
@@ -40,14 +39,14 @@ export default function App() {
       {user && <Navbar />}
       <main className="flex-1">
         <Routes>
-          <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <TempPage title="Login" />} />
-          <Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <TempPage title="Register" />} />
-          
+          <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
+          <Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <RegisterPage />} />
+
           <Route
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <TempPage title="Dashboard" />
+                <DashboardPage />
               </ProtectedRoute>
             }
           />
@@ -55,7 +54,15 @@ export default function App() {
             path="/tasks"
             element={
               <ProtectedRoute>
-                <TempPage title="Tasks List" />
+                <TasksPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tasks/:id"
+            element={
+              <ProtectedRoute>
+                <TaskDetailPage />
               </ProtectedRoute>
             }
           />
@@ -63,7 +70,7 @@ export default function App() {
             path="/admin"
             element={
               <AdminRoute>
-                <TempPage title="Admin Dashboard" />
+                <AdminDashboardPage />
               </AdminRoute>
             }
           />
@@ -73,4 +80,3 @@ export default function App() {
     </div>
   );
 }
-
