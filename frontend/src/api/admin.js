@@ -19,3 +19,4 @@ export const deleteUser = async (userId) => {
   const response = await API.delete(`/admin/users/${userId}`);
   return response.data;
 };
+

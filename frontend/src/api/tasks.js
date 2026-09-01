@@ -38,3 +38,4 @@ export const deleteTaskFile = async (taskId, fileId) => {
   const response = await API.delete(`/tasks/${taskId}/files/${fileId}`);
   return response.data;
 };
+
