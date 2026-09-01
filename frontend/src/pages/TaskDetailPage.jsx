@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { fetchTaskById, updateTask, deleteTask } from '../api/tasks';
+import { fetchTaskById, updateTask, deleteTask, uploadTaskFile, deleteTaskFile } from '../api/tasks';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { ArrowLeft, Calendar, User as UserIcon, Trash2, Clock } from 'lucide-react';
+import { ArrowLeft, Calendar, User as UserIcon, Trash2, Clock, Upload, FileText, Download } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function TaskDetailPage() {
@@ -13,6 +13,9 @@ export default function TaskDetailPage() {
   const navigate = useNavigate();
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     loadTask();
@@ -49,6 +52,35 @@ export default function TaskDetailPage() {
     }
   };
 
+  const handleFileUpload = async (e) => {
+    e.preventDefault();
+    if (!selectedFile) return alert('Please select a file to upload');
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    setUploading(true);
+    try {
+      await uploadTaskFile(id, formData);
+      setSelectedFile(null);
+      loadTask();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to upload file');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleFileDelete = async (fileId) => {
+    if (!window.confirm('Delete this attachment?')) return;
+    try {
+      await deleteTaskFile(id, fileId);
+      loadTask();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to delete file');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex h-[70vh] items-center justify-center">
@@ -72,7 +104,7 @@ export default function TaskDetailPage() {
         <ArrowLeft className="h-4 w-4 mr-1" /> Back to Tasks
       </Link>
 
-      <Card className="border-border/50 shadow-sm">
+      <Card className="border-border/50 shadow-sm mb-8">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-6">
           <div>
             <div className="flex items-center gap-3 mb-2">
@@ -132,6 +164,63 @@ export default function TaskDetailPage() {
               <span className="text-muted-foreground">Created On:</span>
               <span className="font-medium">{new Date(task.createdAt).toLocaleDateString()}</span>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/50 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary" /> File Attachments ({task.files?.length || 0})
+          </CardTitle>
+        </CardHeader>
+
+        <CardContent className="space-y-6">
+          <form onSubmit={handleFileUpload} className="flex flex-col sm:flex-row items-center gap-3 p-4 bg-muted/40 rounded-lg border border-border/50">
+            <input
+              type="file"
+              onChange={(e) => setSelectedFile(e.target.files[0])}
+              className="text-xs text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer w-full sm:w-auto"
+            />
+            <Button type="submit" size="sm" disabled={uploading || !selectedFile} className="w-full sm:w-auto shrink-0 flex items-center gap-1.5">
+              <Upload className="h-3.5 w-3.5" />
+              {uploading ? 'Uploading...' : 'Upload Attachment'}
+            </Button>
+          </form>
+
+          <div className="divide-y divide-border">
+            {task.files?.map((file) => (
+              <div key={file.id} className="py-3 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="p-2 rounded bg-primary/10 text-primary">
+                    <FileText className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{file.originalName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(file.sizeBytes / 1024).toFixed(1)} KB • Uploaded by {file.uploader?.name || 'User'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <a href={file.fileUrl} target="_blank" rel="noreferrer" download>
+                    <Button variant="outline" size="sm">
+                      <Download className="h-3.5 w-3.5 mr-1" /> Download
+                    </Button>
+                  </a>
+                  {(isAdmin || file.uploadedById === user?.id) && (
+                    <Button variant="ghost" size="sm" onClick={() => handleFileDelete(file.id)} className="text-muted-foreground hover:text-destructive">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {(!task.files || task.files.length === 0) && (
+              <p className="text-sm text-muted-foreground py-6 text-center">No files attached to this task yet.</p>
+            )}
           </div>
         </CardContent>
       </Card>

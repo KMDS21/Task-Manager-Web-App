@@ -1,5 +1,7 @@
-const { Task, User } = require('../models/index');
+const { Task, File, User } = require('../models/index');
 const { Op } = require('sequelize');
+const path = require('path');
+const fs = require('fs');
 
 // GET /api/tasks
 const getAllTasks = async (req, res, next) => {
@@ -25,6 +27,7 @@ const getAllTasks = async (req, res, next) => {
       include: [
         { model: User, as: 'assignee', attributes: ['id', 'name', 'email'] },
         { model: User, as: 'creator', attributes: ['id', 'name', 'email'] },
+        { model: File, as: 'files' },
       ],
       order: [['createdAt', 'DESC']],
       limit: parseInt(limit),
@@ -49,6 +52,7 @@ const getTask = async (req, res, next) => {
       include: [
         { model: User, as: 'assignee', attributes: ['id', 'name', 'email'] },
         { model: User, as: 'creator', attributes: ['id', 'name', 'email'] },
+        { model: File, as: 'files', include: [{ model: User, as: 'uploader', attributes: ['id', 'name'] }] },
       ],
     });
 
@@ -122,4 +126,43 @@ const deleteTask = async (req, res, next) => {
   }
 };
 
-module.exports = { getAllTasks, getTask, createTask, updateTask, deleteTask };
+// POST /api/tasks/:id/files
+const uploadTaskFile = async (req, res, next) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded.' });
+
+    const task = await Task.findByPk(req.params.id);
+    if (!task) return res.status(404).json({ message: 'Task not found.' });
+
+    const file = await File.create({
+      taskId: task.id,
+      uploadedById: req.user.id,
+      fileUrl: `/uploads/${req.file.filename}`,
+      originalName: req.file.originalname,
+      fileType: req.file.mimetype,
+      sizeBytes: req.file.size,
+    });
+
+    return res.status(201).json({ message: 'File uploaded successfully.', file });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// DELETE /api/tasks/:id/files/:fileId
+const deleteTaskFile = async (req, res, next) => {
+  try {
+    const file = await File.findByPk(req.params.fileId);
+    if (!file) return res.status(404).json({ message: 'File not found.' });
+
+    const filePath = path.join(__dirname, '../../', file.fileUrl);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+
+    await file.destroy();
+    return res.status(200).json({ message: 'File deleted successfully.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { getAllTasks, getTask, createTask, updateTask, deleteTask, uploadTaskFile, deleteTaskFile };
