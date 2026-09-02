@@ -41,7 +41,6 @@ export default function TasksPage() {
         .then(([usersRes, deptsRes]) => {
           setUsers(usersRes.data.users || []);
           setDepartments(deptsRes.data.departments || []);
-          // Default filter to admin's department if available
           if (user?.departmentId) {
             setSelectedDeptFilter(user.departmentId);
           }
@@ -110,7 +109,6 @@ export default function TasksPage() {
     ? users.filter((u) => u.departmentId === selectedDeptFilter)
     : users;
 
-  // Group users by department for clean select dropdown display
   const unassignedUsers = users.filter((u) => !u.departmentId);
 
   return (
@@ -303,7 +301,7 @@ export default function TasksPage() {
                       const deptUsers = filteredUsers.filter((u) => u.departmentId === dept.id);
                       if (deptUsers.length === 0) return null;
                       return (
-                        <optgroup key={dept.id} label={`🏢 ${dept.name}`}>
+                        <optgroup key={dept.id} label={dept.name}>
                           {deptUsers.map((u) => (
                             <option key={u.id} value={u.id}>
                               {u.name} ({u.role.replace('_', ' ')}) — {u.email}

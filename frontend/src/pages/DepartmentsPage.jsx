@@ -98,10 +98,6 @@ export default function DepartmentsPage() {
     );
   }
 
-  const activeDepartment = selectedDeptId !== 'all'
-    ? departments.find((d) => d.id === selectedDeptId)
-    : null;
-
   const displayDepartments = selectedDeptId === 'all'
     ? departments
     : departments.filter((d) => d.id === selectedDeptId);
@@ -151,10 +147,10 @@ export default function DepartmentsPage() {
               onChange={(e) => setSelectedDeptId(e.target.value)}
               className="h-9 w-full sm:w-64 rounded-md border border-input bg-background px-3 text-sm font-semibold focus-visible:outline-none"
             >
-              <option value="all">🏢 All Departments ({departments.length})</option>
+              <option value="all">All Departments</option>
               {departments.map((d) => (
                 <option key={d.id} value={d.id}>
-                  {d.name} ({d.members?.length || 0} members)
+                  {d.name}
                 </option>
               ))}
             </select>

@@ -249,19 +249,25 @@ export default function AdminDashboardPage() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <select
-                        value={u.departmentId || ''}
-                        onChange={(e) => handleDepartmentChange(u, e.target.value)}
-                        className="h-8 rounded-md border border-input bg-background px-2 text-xs font-medium focus-visible:outline-none max-w-[160px]"
-                        disabled={actionLoading[u.id]}
-                      >
-                        <option value="">-- No Dept --</option>
-                        {departments.map((d) => (
-                          <option key={d.id} value={d.id}>
-                            {d.name}
-                          </option>
-                        ))}
-                      </select>
+                      {u.role === 'super_admin' ? (
+                        <Badge variant="super_admin" className="text-[10px]">
+                          ALL DEPARTMENTS
+                        </Badge>
+                      ) : (
+                        <select
+                          value={u.departmentId || ''}
+                          onChange={(e) => handleDepartmentChange(u, e.target.value)}
+                          className="h-8 rounded-md border border-input bg-background px-2 text-xs font-medium focus-visible:outline-none max-w-[160px]"
+                          disabled={actionLoading[u.id]}
+                        >
+                          <option value="">-- No Dept --</option>
+                          {departments.map((d) => (
+                            <option key={d.id} value={d.id}>
+                              {d.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </td>
                     <td className="px-4 py-3 font-medium">
                       {u.assignedTasks?.length || 0} tasks

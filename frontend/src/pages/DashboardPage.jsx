@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchTasks } from '../api/tasks';
+import { fetchDepartments } from '../api/departments';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
-import { ListTodo, Clock, CheckCircle2, AlertCircle, Plus, ArrowRight, XCircle } from 'lucide-react';
+import { ListTodo, Clock, CheckCircle2, AlertCircle, Plus, ArrowRight, XCircle, Building2 } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { useAuth } from '../context/AuthContext';
@@ -12,8 +13,10 @@ import { useAuth } from '../context/AuthContext';
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 export default function DashboardPage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isSuperAdmin, user } = useAuth();
   const [tasks, setTasks] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [selectedDeptId, setSelectedDeptId] = useState('all');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,8 +25,13 @@ export default function DashboardPage() {
 
   const loadDashboardData = async () => {
     try {
-      const res = await fetchTasks({ limit: 100 });
-      setTasks(res.data.tasks || []);
+      const tasksRes = await fetchTasks({ limit: 100 });
+      setTasks(tasksRes.data.tasks || []);
+
+      if (isAdmin) {
+        const deptsRes = await fetchDepartments();
+        setDepartments(deptsRes.data.departments || []);
+      }
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
     } finally {
@@ -31,11 +39,16 @@ export default function DashboardPage() {
     }
   };
 
-  const pendingCount = tasks.filter((t) => t.status === 'pending').length;
-  const inProgressCount = tasks.filter((t) => t.status === 'in_progress').length;
-  const completedCount = tasks.filter((t) => t.status === 'completed').length;
-  const rejectedCount = tasks.filter((t) => t.status === 'rejected').length;
-  const totalCount = tasks.length;
+  // Filter tasks based on selected department
+  const filteredTasks = selectedDeptId === 'all'
+    ? tasks
+    : tasks.filter((t) => t.assignee?.departmentId === selectedDeptId);
+
+  const pendingCount = filteredTasks.filter((t) => t.status === 'pending').length;
+  const inProgressCount = filteredTasks.filter((t) => t.status === 'in_progress').length;
+  const completedCount = filteredTasks.filter((t) => t.status === 'completed').length;
+  const rejectedCount = filteredTasks.filter((t) => t.status === 'rejected').length;
+  const totalCount = filteredTasks.length;
 
   const chartData = {
     labels: ['Pending', 'In Progress', 'Completed', 'Rejected'],
@@ -64,19 +77,41 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">Overview of task metrics and workload progress</p>
         </div>
-        {isAdmin ? (
-          <Link to="/tasks">
-            <Button className="flex items-center gap-2">
-              <Plus className="h-4 w-4" /> Assign New Task
-            </Button>
-          </Link>
-        ) : (
-          <Link to="/tasks">
-            <Button variant="outline" className="flex items-center gap-2">
-              View My Tasks <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
-        )}
+
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          {/* Super Admin & Admin Department Progress Selector */}
+          {isAdmin && (
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+              <select
+                value={selectedDeptId}
+                onChange={(e) => setSelectedDeptId(e.target.value)}
+                className="h-9 rounded-md border border-input bg-background px-3 text-xs font-semibold focus-visible:outline-none"
+              >
+                <option value="all">All Departments</option>
+                {departments.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {isAdmin ? (
+            <Link to="/tasks">
+              <Button className="flex items-center gap-2">
+                <Plus className="h-4 w-4" /> Assign New Task
+              </Button>
+            </Link>
+          ) : (
+            <Link to="/tasks">
+              <Button variant="outline" className="flex items-center gap-2">
+                View My Tasks <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
@@ -161,7 +196,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="divide-y divide-border">
-              {tasks.slice(0, 5).map((task) => (
+              {filteredTasks.slice(0, 5).map((task) => (
                 <div key={task.id} className="py-3 flex items-center justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     <Link to={`/tasks/${task.id}`} className="font-medium hover:underline block truncate">
@@ -172,8 +207,8 @@ export default function DashboardPage() {
                   <Badge variant={task.status}>{task.status.replace('_', ' ').toUpperCase()}</Badge>
                 </div>
               ))}
-              {tasks.length === 0 && (
-                <p className="text-sm text-muted-foreground py-8 text-center">No tasks assigned yet.</p>
+              {filteredTasks.length === 0 && (
+                <p className="text-sm text-muted-foreground py-8 text-center">No tasks assigned for this department.</p>
               )}
             </div>
           </CardContent>
