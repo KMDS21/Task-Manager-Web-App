@@ -1,16 +1,26 @@
-const { User, Task } = require('../models/index');
+const { User, Task, Department } = require('../models/index');
 
 // GET /api/admin/stats
 const getStats = async (req, res, next) => {
   try {
     const totalUsers = await User.count();
     const totalTasks = await Task.count();
+    const totalDepartments = await Department.count();
     const pendingTasks = await Task.count({ where: { status: 'pending' } });
     const inProgressTasks = await Task.count({ where: { status: 'in_progress' } });
     const completedTasks = await Task.count({ where: { status: 'completed' } });
+    const rejectedTasks = await Task.count({ where: { status: 'rejected' } });
 
     return res.status(200).json({
-      stats: { totalUsers, totalTasks, pendingTasks, inProgressTasks, completedTasks },
+      stats: {
+        totalUsers,
+        totalTasks,
+        totalDepartments,
+        pendingTasks,
+        inProgressTasks,
+        completedTasks,
+        rejectedTasks,
+      },
     });
   } catch (error) {
     next(error);
@@ -33,7 +43,10 @@ const getUsers = async (req, res, next) => {
 
     const users = await User.findAll({
       where,
-      include: [{ model: Task, as: 'assignedTasks', attributes: ['id', 'status'] }],
+      include: [
+        { model: Task, as: 'assignedTasks', attributes: ['id', 'status'] },
+        { model: Department, as: 'department', attributes: ['id', 'name'] },
+      ],
       order: [['createdAt', 'DESC']],
     });
 
@@ -47,8 +60,9 @@ const getUsers = async (req, res, next) => {
 const updateUserRole = async (req, res, next) => {
   try {
     const { role } = req.body;
-    if (!['user', 'admin'].includes(role)) {
-      return res.status(400).json({ message: 'Invalid role. Must be "user" or "admin".' });
+    const allowedRoles = ['employee', 'admin', 'super_admin'];
+    if (!allowedRoles.includes(role)) {
+      return res.status(400).json({ message: `Invalid role. Must be one of: ${allowedRoles.join(', ')}.` });
     }
 
     const user = await User.findByPk(req.params.id);
@@ -56,6 +70,26 @@ const updateUserRole = async (req, res, next) => {
 
     await user.update({ role });
     return res.status(200).json({ message: 'User role updated successfully.', user });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// PUT /api/admin/users/:id/department
+const updateUserDepartment = async (req, res, next) => {
+  try {
+    const { departmentId } = req.body;
+
+    const user = await User.findByPk(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+
+    if (departmentId) {
+      const department = await Department.findByPk(departmentId);
+      if (!department) return res.status(404).json({ message: 'Department not found.' });
+    }
+
+    await user.update({ departmentId: departmentId || null });
+    return res.status(200).json({ message: 'User department updated successfully.', user });
   } catch (error) {
     next(error);
   }
@@ -78,4 +112,4 @@ const deleteUser = async (req, res, next) => {
   }
 };
 
-module.exports = { getStats, getUsers, updateUserRole, deleteUser };
+module.exports = { getStats, getUsers, updateUserRole, updateUserDepartment, deleteUser };
