@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { fetchDepartments, createDepartment, updateDepartment, deleteDepartment } from '../api/departments';
-import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
-import { Building2, Plus, Edit2, Trash2, Users, AlertCircle, CheckCircle2, Shield, User as UserIcon } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, AlertCircle, CheckCircle2, Shield, User as UserIcon, ArrowLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function DepartmentsPage() {
-  const { isSuperAdmin, user: currentUser } = useAuth();
+  const { isSuperAdmin } = useAuth();
   const [departments, setDepartments] = useState([]);
   const [selectedDeptId, setSelectedDeptId] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -83,6 +83,7 @@ export default function DepartmentsPage() {
     try {
       await deleteDepartment(id);
       setSuccess('Department deleted successfully');
+      if (selectedDeptId === id) setSelectedDeptId('all');
       loadDepartments();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -98,21 +99,15 @@ export default function DepartmentsPage() {
     );
   }
 
-  const displayDepartments = selectedDeptId === 'all'
-    ? departments
-    : departments.filter((d) => d.id === selectedDeptId);
+  const selectedDept = departments.find((d) => d.id === selectedDeptId);
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
+      {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-primary/10 rounded-xl">
-            <Building2 className="h-8 w-8 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Department Directory</h1>
-            <p className="text-muted-foreground text-sm">View employees and admins organized by department</p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Department Directory</h1>
+          <p className="text-muted-foreground text-sm">Organize departments, view admins, and track employees</p>
         </div>
 
         {isSuperAdmin && (
@@ -136,124 +131,164 @@ export default function DepartmentsPage() {
         </div>
       )}
 
-      {/* Department Selector Filter Bar */}
-      <Card className="mb-8 border-border/50">
-        <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className="text-sm font-medium shrink-0">Select Department:</span>
-            <select
-              value={selectedDeptId}
-              onChange={(e) => setSelectedDeptId(e.target.value)}
-              className="h-9 w-full sm:w-64 rounded-md border border-input bg-background px-3 text-sm font-semibold focus-visible:outline-none"
-            >
-              <option value="all">All Departments</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-          </div>
+      {/* Back Button when viewing a specific department */}
+      {selectedDeptId !== 'all' && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setSelectedDeptId('all')}
+          className="mb-6 flex items-center gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to All Departments
+        </Button>
+      )}
 
-          <div className="text-xs text-muted-foreground">
-            Showing {displayDepartments.length} department{displayDepartments.length !== 1 ? 's' : ''}
-          </div>
-        </CardContent>
-      </Card>
+      {/* OVERVIEW GRID VIEW: Shown when "All Departments" is active */}
+      {selectedDeptId === 'all' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {departments.map((dept) => {
+            const deptAdmins = dept.members?.filter((m) => m.role === 'admin' || m.role === 'super_admin') || [];
+            const deptEmployees = dept.members?.filter((m) => m.role !== 'admin' && m.role !== 'super_admin') || [];
 
-      {/* Department Cards & Members Grid */}
-      <div className="space-y-8">
-        {displayDepartments.map((dept) => {
-          const deptAdmins = dept.members?.filter((m) => m.role === 'admin' || m.role === 'super_admin') || [];
-          const deptEmployees = dept.members?.filter((m) => m.role === 'employee') || [];
-
-          return (
-            <Card key={dept.id} className="border-border/50 shadow-sm overflow-hidden">
-              <CardHeader className="bg-muted/30 border-b pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-3 mb-1">
-                    <CardTitle className="text-xl font-bold flex items-center gap-2">
-                      <Building2 className="h-5 w-5 text-primary" /> {dept.name}
+            return (
+              <Card
+                key={dept.id}
+                className="border-border/50 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
+                onClick={() => setSelectedDeptId(dept.id)}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <CardTitle className="text-xl font-semibold">
+                      {dept.name}
                     </CardTitle>
-                    <Badge variant="outline" className="flex items-center gap-1">
-                      <Users className="h-3 w-3" /> {dept.members?.length || 0} Total Members
+                    <Badge variant="outline" className="shrink-0 flex items-center gap-1">
+                      <Users className="h-3 w-3" /> {dept.members?.length || 0}
                     </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">{dept.description || 'No description provided.'}</p>
-                </div>
+                  <p className="text-xs text-muted-foreground line-clamp-2">
+                    {dept.description || 'No detailed description provided.'}
+                  </p>
+                </CardHeader>
 
-                {isSuperAdmin && (
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Button variant="outline" size="sm" onClick={() => handleOpenModal(dept)}>
-                      <Edit2 className="h-3.5 w-3.5 mr-1" /> Edit
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDelete(dept.id)} className="text-muted-foreground hover:text-destructive">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                <CardContent className="space-y-3 pt-0 flex-1">
+                  <div className="border-t pt-3 space-y-2 text-xs">
+                    {/* Admin summary */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <Shield className="h-3.5 w-3.5 text-purple-500" /> Admin:
+                      </span>
+                      <span className="font-semibold text-foreground truncate max-w-[140px]">
+                        {deptAdmins.length > 0 ? deptAdmins.map((a) => a.name).join(', ') : 'None assigned'}
+                      </span>
+                    </div>
+
+                    {/* Employee summary */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <UserIcon className="h-3.5 w-3.5 text-blue-500" /> Employees:
+                      </span>
+                      <span className="font-semibold text-foreground">
+                        {deptEmployees.length} Employee{deptEmployees.length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
                   </div>
-                )}
-              </CardHeader>
+                </CardContent>
 
-              <CardContent className="pt-6 space-y-6">
-                {/* Department Admins */}
-                <div>
-                  <h4 className="text-xs uppercase text-muted-foreground font-semibold tracking-wider mb-3 flex items-center gap-1.5">
-                    <Shield className="h-3.5 w-3.5 text-purple-500" /> Department Admins ({deptAdmins.length})
-                  </h4>
-                  {deptAdmins.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                      {deptAdmins.map((m) => (
-                        <div key={m.id} className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-full bg-purple-500/20 text-purple-700 dark:text-purple-300 font-bold flex items-center justify-center text-xs">
-                            {m.name?.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-semibold truncate">{m.name}</p>
-                            <p className="text-xs text-muted-foreground truncate">{m.email}</p>
-                          </div>
-                        </div>
-                      ))}
+                <CardFooter className="border-t pt-3 flex items-center justify-between text-xs font-semibold text-primary">
+                  <span>View Employees & Details</span>
+                  <ChevronRight className="h-4 w-4" />
+                </CardFooter>
+              </Card>
+            );
+          })}
+
+          {departments.length === 0 && (
+            <div className="col-span-full py-12 text-center text-muted-foreground">
+              No departments created yet. {isSuperAdmin && 'Click "Add Department" to get started.'}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* DETAILED DRILLDOWN VIEW: Shown when a specific department is clicked/selected */}
+      {selectedDeptId !== 'all' && selectedDept && (
+        <Card className="border-border/50 shadow-sm overflow-hidden">
+          <CardHeader className="bg-muted/30 border-b pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-3 mb-1">
+                <CardTitle className="text-2xl font-bold">
+                  {selectedDept.name}
+                </CardTitle>
+                <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                  <Users className="h-3.5 w-3.5" /> {selectedDept.members?.length || 0} Total Members
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">{selectedDept.description || 'No description provided.'}</p>
+            </div>
+
+            {isSuperAdmin && (
+              <div className="flex items-center gap-2 shrink-0">
+                <Button variant="outline" size="sm" onClick={() => handleOpenModal(selectedDept)}>
+                  <Edit2 className="h-3.5 w-3.5 mr-1" /> Edit
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => handleDelete(selectedDept.id)} className="text-muted-foreground hover:text-destructive">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </CardHeader>
+
+          <CardContent className="pt-6 space-y-6">
+            {/* Department Admins Section */}
+            <div>
+              <h4 className="text-xs uppercase text-muted-foreground font-semibold tracking-wider mb-3 flex items-center gap-1.5">
+                <Shield className="h-3.5 w-3.5 text-purple-500" /> DEPARTMENT ADMINS ({selectedDept.members?.filter((m) => m.role === 'admin' || m.role === 'super_admin').length || 0})
+              </h4>
+              {selectedDept.members?.filter((m) => m.role === 'admin' || m.role === 'super_admin').length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {selectedDept.members?.filter((m) => m.role === 'admin' || m.role === 'super_admin').map((m) => (
+                    <div key={m.id} className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-purple-500/20 text-purple-700 dark:text-purple-300 font-bold flex items-center justify-center text-xs">
+                        {m.name?.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold truncate">{m.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{m.email}</p>
+                      </div>
                     </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground italic">No admins assigned to this department yet.</p>
-                  )}
+                  ))}
                 </div>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">No admins assigned to this department yet.</p>
+              )}
+            </div>
 
-                {/* Department Employees */}
-                <div className="border-t pt-4">
-                  <h4 className="text-xs uppercase text-muted-foreground font-semibold tracking-wider mb-3 flex items-center gap-1.5">
-                    <UserIcon className="h-3.5 w-3.5 text-blue-500" /> Department Employees ({deptEmployees.length})
-                  </h4>
-                  {deptEmployees.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                      {deptEmployees.map((m) => (
-                        <div key={m.id} className="p-3 rounded-lg bg-muted/50 border border-border flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-xs">
-                            {m.name?.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium truncate">{m.name}</p>
-                            <p className="text-xs text-muted-foreground truncate">{m.email}</p>
-                          </div>
-                        </div>
-                      ))}
+            {/* Department Employees Section */}
+            <div className="border-t pt-4">
+              <h4 className="text-xs uppercase text-muted-foreground font-semibold tracking-wider mb-3 flex items-center gap-1.5">
+                <UserIcon className="h-3.5 w-3.5 text-blue-500" /> DEPARTMENT EMPLOYEES ({selectedDept.members?.filter((m) => m.role !== 'admin' && m.role !== 'super_admin').length || 0})
+              </h4>
+              {selectedDept.members?.filter((m) => m.role !== 'admin' && m.role !== 'super_admin').length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {selectedDept.members?.filter((m) => m.role !== 'admin' && m.role !== 'super_admin').map((m) => (
+                    <div key={m.id} className="p-3 rounded-lg bg-muted/50 border border-border flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-xs">
+                        {m.name?.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{m.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{m.email}</p>
+                      </div>
                     </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground italic">No employees assigned to this department yet.</p>
-                  )}
+                  ))}
                 </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-
-        {departments.length === 0 && (
-          <div className="py-12 text-center text-muted-foreground">
-            No departments created yet. {isSuperAdmin && 'Click "Add Department" to create one.'}
-          </div>
-        )}
-      </div>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">No employees assigned to this department yet.</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Create / Edit Modal */}
       {showModal && (
@@ -267,7 +302,7 @@ export default function DepartmentsPage() {
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">Department Name</label>
                   <Input
-                    placeholder="e.g. Engineering, Marketing, HR"
+                    placeholder="e.g. Software Development, HR"
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                   />
@@ -276,7 +311,7 @@ export default function DepartmentsPage() {
                   <label className="text-sm font-medium">Description</label>
                   <textarea
                     rows={3}
-                    placeholder="Brief description of responsibilities..."
+                    placeholder="Brief description of department duties..."
                     value={form.description}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
                     className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none"
