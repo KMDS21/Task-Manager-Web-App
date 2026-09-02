@@ -5,7 +5,7 @@ import { fetchDepartments } from '../api/departments';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
-import { ListTodo, Clock, CheckCircle2, AlertCircle, Plus, ArrowRight, XCircle, Building2 } from 'lucide-react';
+import { ListTodo, Clock, CheckCircle2, AlertCircle, Plus, ArrowRight, XCircle, Building2, UserCheck } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { useAuth } from '../context/AuthContext';
@@ -13,7 +13,7 @@ import { useAuth } from '../context/AuthContext';
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 export default function DashboardPage() {
-  const { isAdmin, isSuperAdmin, user } = useAuth();
+  const { isAdmin, user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [selectedDeptId, setSelectedDeptId] = useState('all');
@@ -39,10 +39,12 @@ export default function DashboardPage() {
     }
   };
 
-  // Filter tasks based on selected department
-  const filteredTasks = selectedDeptId === 'all'
-    ? tasks
-    : tasks.filter((t) => t.assignee?.departmentId === selectedDeptId);
+  // Filter tasks based on selected department (for admins)
+  const filteredTasks = isAdmin
+    ? (selectedDeptId === 'all'
+        ? tasks
+        : tasks.filter((t) => t.assignee?.departmentId === selectedDeptId))
+    : tasks; // Employees only get their own tasks from backend API
 
   const pendingCount = filteredTasks.filter((t) => t.status === 'pending').length;
   const inProgressCount = filteredTasks.filter((t) => t.status === 'in_progress').length;
@@ -74,12 +76,18 @@ export default function DashboardPage() {
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Overview of task metrics and workload progress</p>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {isAdmin ? 'Management Dashboard' : `Welcome, ${user?.name || 'Employee'}`}
+          </h1>
+          <p className="text-muted-foreground">
+            {isAdmin
+              ? 'Overview of department task metrics and workload progress'
+              : 'Your personal task dashboard — track and respond to your assigned work'}
+          </p>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          {/* Super Admin & Admin Department Progress Selector */}
+          {/* Department Selector for Admins */}
           {isAdmin && (
             <div className="flex items-center gap-2">
               <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -106,23 +114,26 @@ export default function DashboardPage() {
             </Link>
           ) : (
             <Link to="/tasks">
-              <Button variant="outline" className="flex items-center gap-2">
-                View My Tasks <ArrowRight className="h-4 w-4" />
+              <Button variant="default" className="flex items-center gap-2">
+                <ListTodo className="h-4 w-4" /> View My Tasks <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
           )}
         </div>
       </div>
 
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Tasks</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {isAdmin ? 'Total Tasks' : 'My Total Tasks'}
+            </CardTitle>
             <ListTodo className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalCount}</div>
-            <p className="text-xs text-muted-foreground">All tasks</p>
+            <p className="text-xs text-muted-foreground">{isAdmin ? 'All department tasks' : 'Tasks assigned to you'}</p>
           </CardContent>
         </Card>
 
@@ -133,7 +144,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pendingCount}</div>
-            <p className="text-xs text-muted-foreground">Awaiting acceptance</p>
+            <p className="text-xs text-muted-foreground">{isAdmin ? 'Awaiting employee action' : 'Awaiting your response'}</p>
           </CardContent>
         </Card>
 
@@ -144,7 +155,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{inProgressCount}</div>
-            <p className="text-xs text-muted-foreground">Currently active</p>
+            <p className="text-xs text-muted-foreground">{isAdmin ? 'Active work' : 'Tasks you accepted'}</p>
           </CardContent>
         </Card>
 
@@ -155,7 +166,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{rejectedCount}</div>
-            <p className="text-xs text-muted-foreground">Rejected by employee</p>
+            <p className="text-xs text-muted-foreground">{isAdmin ? 'Rejected by employee' : 'Tasks you rejected'}</p>
           </CardContent>
         </Card>
 
@@ -174,7 +185,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle>Status Breakdown</CardTitle>
+            <CardTitle>{isAdmin ? 'Department Status Breakdown' : 'My Status Breakdown'}</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center justify-center p-6">
             {totalCount > 0 ? (
@@ -182,14 +193,14 @@ export default function DashboardPage() {
                 <Doughnut data={chartData} options={{ maintainAspectRatio: true }} />
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground py-12">No tasks available to graph</p>
+              <p className="text-sm text-muted-foreground py-12">No tasks assigned to display chart</p>
             )}
           </CardContent>
         </Card>
 
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Recent Tasks</CardTitle>
+            <CardTitle>{isAdmin ? 'Recent Tasks' : 'My Recent Tasks'}</CardTitle>
             <Link to="/tasks" className="text-xs text-primary font-semibold flex items-center hover:underline">
               View All <ArrowRight className="h-3 w-3 ml-1" />
             </Link>
@@ -208,7 +219,9 @@ export default function DashboardPage() {
                 </div>
               ))}
               {filteredTasks.length === 0 && (
-                <p className="text-sm text-muted-foreground py-8 text-center">No tasks assigned for this department.</p>
+                <p className="text-sm text-muted-foreground py-8 text-center">
+                  {isAdmin ? 'No tasks assigned for this department.' : 'You have no assigned tasks currently.'}
+                </p>
               )}
             </div>
           </CardContent>

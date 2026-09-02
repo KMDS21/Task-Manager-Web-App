@@ -115,9 +115,11 @@ export default function TasksPage() {
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {isAdmin ? 'Task Management' : 'My Assigned Tasks'}
+          </h1>
           <p className="text-muted-foreground">
-            {isAdmin ? 'Manage and assign tasks across department employees' : 'View and respond to your assigned tasks'}
+            {isAdmin ? 'Manage and assign tasks across department employees' : 'View, accept, and complete your assigned tasks'}
           </p>
         </div>
 
@@ -223,7 +225,9 @@ export default function TasksPage() {
         </div>
       ) : (
         <Card className="p-12 text-center border-dashed mb-8">
-          <p className="text-muted-foreground">No tasks found matching your filter criteria.</p>
+          <p className="text-muted-foreground">
+            {isAdmin ? 'No tasks found matching your filter criteria.' : 'You have no assigned tasks currently.'}
+          </p>
         </Card>
       )}
 
