@@ -6,10 +6,7 @@ const path = require('path');
 const { testConnection, sequelize } = require('./src/config/database');
 const authRoutes = require('./src/routes/authRoutes');
 const taskRoutes = require('./src/routes/taskRoutes');
-<<<<<<< HEAD
 const adminRoutes = require('./src/routes/adminRoutes');
-=======
->>>>>>> feature/file-upload
 const errorHandler = require('./src/middleware/errorHandler');
 
 const app = express();
@@ -26,15 +23,10 @@ app.use(express.urlencoded({ extended: true }));
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-<<<<<<< HEAD
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/admin', adminRoutes);
-=======
-app.use('/api/auth', authRoutes);
-app.use('/api/tasks', taskRoutes);
->>>>>>> feature/file-upload
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Task Manager API is running 🚀' });
