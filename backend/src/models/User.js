@@ -31,3 +31,4 @@ User.prototype.validatePassword = async function (password) {
 };
 
 module.exports = User;
+
