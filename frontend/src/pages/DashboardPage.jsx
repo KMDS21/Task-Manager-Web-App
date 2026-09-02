@@ -5,7 +5,7 @@ import { fetchDepartments } from '../api/departments';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
-import { ListTodo, Clock, CheckCircle2, AlertCircle, Plus, ArrowRight, XCircle, Building2, UserCheck } from 'lucide-react';
+import { ListTodo, Clock, CheckCircle2, AlertCircle, Plus, ArrowRight, XCircle } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { useAuth } from '../context/AuthContext';
@@ -13,7 +13,7 @@ import { useAuth } from '../context/AuthContext';
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 export default function DashboardPage() {
-  const { isAdmin, user } = useAuth();
+  const { isAdmin, isSuperAdmin, user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [selectedDeptId, setSelectedDeptId] = useState('all');
@@ -30,7 +30,12 @@ export default function DashboardPage() {
 
       if (isAdmin) {
         const deptsRes = await fetchDepartments();
-        setDepartments(deptsRes.data.departments || []);
+        const depts = deptsRes.data.departments || [];
+        setDepartments(depts);
+        // Default Department Admin to their assigned department
+        if (!isSuperAdmin && user?.departmentId) {
+          setSelectedDeptId(user.departmentId);
+        }
       }
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
@@ -90,7 +95,7 @@ export default function DashboardPage() {
           {/* Department Selector for Admins */}
           {isAdmin && (
             <div className="flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="text-xs font-semibold text-muted-foreground shrink-0">Department:</span>
               <select
                 value={selectedDeptId}
                 onChange={(e) => setSelectedDeptId(e.target.value)}
@@ -99,7 +104,7 @@ export default function DashboardPage() {
                 <option value="all">All Departments</option>
                 {departments.map((d) => (
                   <option key={d.id} value={d.id}>
-                    {d.name}
+                    {d.name} {user?.departmentId === d.id ? '(My Department)' : ''}
                   </option>
                 ))}
               </select>
@@ -230,3 +235,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

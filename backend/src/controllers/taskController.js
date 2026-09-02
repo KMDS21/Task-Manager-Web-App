@@ -47,7 +47,12 @@ const getAllTasks = async (req, res, next) => {
           attributes: ['id', 'name', 'email', 'departmentId'],
           include: [{ model: Department, as: 'department', attributes: ['id', 'name'] }],
         },
-        { model: User, as: 'creator', attributes: ['id', 'name', 'email'] },
+        {
+          model: User,
+          as: 'creator',
+          attributes: ['id', 'name', 'email', 'departmentId'],
+          include: [{ model: Department, as: 'department', attributes: ['id', 'name'] }],
+        },
         { model: File, as: 'files' },
       ],
       order: [['createdAt', 'DESC']],
@@ -78,7 +83,12 @@ const getTask = async (req, res, next) => {
           attributes: ['id', 'name', 'email', 'departmentId'],
           include: [{ model: Department, as: 'department', attributes: ['id', 'name'] }],
         },
-        { model: User, as: 'creator', attributes: ['id', 'name', 'email'] },
+        {
+          model: User,
+          as: 'creator',
+          attributes: ['id', 'name', 'email', 'departmentId'],
+          include: [{ model: Department, as: 'department', attributes: ['id', 'name'] }],
+        },
         { model: File, as: 'files', include: [{ model: User, as: 'uploader', attributes: ['id', 'name'] }] },
       ],
     });
