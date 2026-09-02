@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchTasks, createTask, deleteTask } from '../api/tasks';
 import { fetchAdminUsers } from '../api/admin';
+import { fetchDepartments } from '../api/departments';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -19,9 +20,11 @@ export default function TasksPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // Modal State
+  // Assign Task Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [users, setUsers] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [selectedDeptFilter, setSelectedDeptFilter] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
@@ -34,9 +37,18 @@ export default function TasksPage() {
 
   useEffect(() => {
     if (isAdmin && isModalOpen) {
-      fetchAdminUsers().then((res) => setUsers(res.data.users || [])).catch(() => {});
+      Promise.all([fetchAdminUsers(), fetchDepartments()])
+        .then(([usersRes, deptsRes]) => {
+          setUsers(usersRes.data.users || []);
+          setDepartments(deptsRes.data.departments || []);
+          // Default filter to admin's department if available
+          if (user?.departmentId) {
+            setSelectedDeptFilter(user.departmentId);
+          }
+        })
+        .catch(() => {});
     }
-  }, [isAdmin, isModalOpen]);
+  }, [isAdmin, isModalOpen, user]);
 
   const loadTasks = async () => {
     setLoading(true);
@@ -60,13 +72,15 @@ export default function TasksPage() {
 
   const handleCreateTask = async (e) => {
     e.preventDefault();
+    if (!assigneeId) return alert('Please select an employee to assign this task.');
+
     setCreateLoading(true);
     try {
       await createTask({
         title,
         description,
         dueDate: dueDate || null,
-        assigneeId: assigneeId || user.id,
+        assigneeId,
       });
       setIsModalOpen(false);
       setTitle('');
@@ -91,17 +105,24 @@ export default function TasksPage() {
     }
   };
 
+  // Filter users based on selected department in assignment modal
+  const filteredUsers = selectedDeptFilter
+    ? users.filter((u) => u.departmentId === selectedDeptFilter)
+    : users;
+
+  // Group users by department for clean select dropdown display
+  const unassignedUsers = users.filter((u) => !u.departmentId);
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
           <p className="text-muted-foreground">
-            {isAdmin ? 'Manage and assign tasks across employees' : 'View and respond to your assigned tasks'}
+            {isAdmin ? 'Manage and assign tasks across department employees' : 'View and respond to your assigned tasks'}
           </p>
         </div>
 
-        {/* Only Admin / Super Admin can see and create tasks */}
         {isAdmin && (
           <Button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2">
             <Plus className="h-4 w-4" /> Assign New Task
@@ -217,12 +238,14 @@ export default function TasksPage() {
         </div>
       )}
 
-      {/* Create Task Modal — Admin/Super Admin Only */}
+      {/* Assign Task Modal */}
       {isModalOpen && isAdmin && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
           <Card className="w-full max-w-lg shadow-xl border-border">
             <CardHeader>
-              <CardTitle>Assign New Task</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-primary" /> Assign Task to Employee
+              </CardTitle>
             </CardHeader>
             <form onSubmit={handleCreateTask}>
               <CardContent className="space-y-4">
@@ -235,8 +258,8 @@ export default function TasksPage() {
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Task details and instructions for the employee..."
-                    className="flex min-h-[90px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    placeholder="Task instructions..."
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none"
                   />
                 </div>
                 <div className="space-y-1">
@@ -244,24 +267,62 @@ export default function TasksPage() {
                   <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
                 </div>
 
-                {users.length > 0 && (
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium">Assign Employee</label>
-                    <select
-                      value={assigneeId}
-                      onChange={(e) => setAssigneeId(e.target.value)}
-                      className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                      required
-                    >
-                      <option value="">-- Select Employee --</option>
-                      {users.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.name} ({u.role.replace('_', ' ')}) {u.department ? `[${u.department.name}]` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+                {/* Department Selection Filter */}
+                <div className="space-y-1 border-t pt-3">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                    <Building2 className="h-3.5 w-3.5" /> Filter Employee by Department
+                  </label>
+                  <select
+                    value={selectedDeptFilter}
+                    onChange={(e) => {
+                      setSelectedDeptFilter(e.target.value);
+                      setAssigneeId('');
+                    }}
+                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm font-medium"
+                  >
+                    <option value="">All Departments</option>
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name} {user?.departmentId === d.id ? '(My Department)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Employee Selection */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Select Employee to Assign</label>
+                  <select
+                    value={assigneeId}
+                    onChange={(e) => setAssigneeId(e.target.value)}
+                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    required
+                  >
+                    <option value="">-- Choose Employee --</option>
+                    {departments.map((dept) => {
+                      const deptUsers = filteredUsers.filter((u) => u.departmentId === dept.id);
+                      if (deptUsers.length === 0) return null;
+                      return (
+                        <optgroup key={dept.id} label={`🏢 ${dept.name}`}>
+                          {deptUsers.map((u) => (
+                            <option key={u.id} value={u.id}>
+                              {u.name} ({u.role.replace('_', ' ')}) — {u.email}
+                            </option>
+                          ))}
+                        </optgroup>
+                      );
+                    })}
+                    {unassignedUsers.length > 0 && (!selectedDeptFilter || selectedDeptFilter === 'unassigned') && (
+                      <optgroup label="Unassigned Employees">
+                        {unassignedUsers.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name} ({u.role.replace('_', ' ')})
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+                </div>
               </CardContent>
               <CardFooter className="flex justify-end gap-2 border-t pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>

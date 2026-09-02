@@ -4,12 +4,13 @@ import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
-import { Building2, Plus, Edit2, Trash2, Users, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Building2, Plus, Edit2, Trash2, Users, AlertCircle, CheckCircle2, Shield, User as UserIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function DepartmentsPage() {
-  const { isSuperAdmin } = useAuth();
+  const { isSuperAdmin, user: currentUser } = useAuth();
   const [departments, setDepartments] = useState([]);
+  const [selectedDeptId, setSelectedDeptId] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -29,7 +30,7 @@ export default function DepartmentsPage() {
     setError('');
     try {
       const res = await fetchDepartments();
-      setDepartments(res.data.departments);
+      setDepartments(res.data.departments || []);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load departments');
     } finally {
@@ -97,6 +98,14 @@ export default function DepartmentsPage() {
     );
   }
 
+  const activeDepartment = selectedDeptId !== 'all'
+    ? departments.find((d) => d.id === selectedDeptId)
+    : null;
+
+  const displayDepartments = selectedDeptId === 'all'
+    ? departments
+    : departments.filter((d) => d.id === selectedDeptId);
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
@@ -105,8 +114,8 @@ export default function DepartmentsPage() {
             <Building2 className="h-8 w-8 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Departments</h1>
-            <p className="text-muted-foreground text-sm">Organize company teams and employee assignments</p>
+            <h1 className="text-3xl font-bold tracking-tight">Department Directory</h1>
+            <p className="text-muted-foreground text-sm">View employees and admins organized by department</p>
           </div>
         </div>
 
@@ -131,56 +140,121 @@ export default function DepartmentsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {departments.map((dept) => (
-          <Card key={dept.id} className="border-border/50 shadow-sm flex flex-col justify-between">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xl font-semibold flex items-center gap-2">
-                  {dept.name}
-                </CardTitle>
-                <Badge variant="outline" className="flex items-center gap-1">
-                  <Users className="h-3 w-3" /> {dept.members?.length || 0} Members
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-0 flex-1">
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {dept.description || 'No detailed description provided.'}
-              </p>
+      {/* Department Selector Filter Bar */}
+      <Card className="mb-8 border-border/50">
+        <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+            <span className="text-sm font-medium shrink-0">Select Department:</span>
+            <select
+              value={selectedDeptId}
+              onChange={(e) => setSelectedDeptId(e.target.value)}
+              className="h-9 w-full sm:w-64 rounded-md border border-input bg-background px-3 text-sm font-semibold focus-visible:outline-none"
+            >
+              <option value="all">🏢 All Departments ({departments.length})</option>
+              {departments.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name} ({d.members?.length || 0} members)
+                </option>
+              ))}
+            </select>
+          </div>
 
-              {/* Members list */}
-              <div>
-                <h4 className="text-xs uppercase text-muted-foreground font-semibold tracking-wider mb-2">Team Members</h4>
-                <div className="flex flex-wrap gap-1.5">
-                  {dept.members?.map((m) => (
-                    <Badge key={m.id} variant={m.role === 'admin' ? 'admin' : 'secondary'} className="text-[11px]">
-                      {m.name} ({m.role.replace('_', ' ')})
+          <div className="text-xs text-muted-foreground">
+            Showing {displayDepartments.length} department{displayDepartments.length !== 1 ? 's' : ''}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Department Cards & Members Grid */}
+      <div className="space-y-8">
+        {displayDepartments.map((dept) => {
+          const deptAdmins = dept.members?.filter((m) => m.role === 'admin' || m.role === 'super_admin') || [];
+          const deptEmployees = dept.members?.filter((m) => m.role === 'employee') || [];
+
+          return (
+            <Card key={dept.id} className="border-border/50 shadow-sm overflow-hidden">
+              <CardHeader className="bg-muted/30 border-b pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-3 mb-1">
+                    <CardTitle className="text-xl font-bold flex items-center gap-2">
+                      <Building2 className="h-5 w-5 text-primary" /> {dept.name}
+                    </CardTitle>
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      <Users className="h-3 w-3" /> {dept.members?.length || 0} Total Members
                     </Badge>
-                  ))}
-                  {(!dept.members || dept.members.length === 0) && (
-                    <span className="text-xs text-muted-foreground italic">No members assigned yet</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{dept.description || 'No description provided.'}</p>
+                </div>
+
+                {isSuperAdmin && (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button variant="outline" size="sm" onClick={() => handleOpenModal(dept)}>
+                      <Edit2 className="h-3.5 w-3.5 mr-1" /> Edit
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleDelete(dept.id)} className="text-muted-foreground hover:text-destructive">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </CardHeader>
+
+              <CardContent className="pt-6 space-y-6">
+                {/* Department Admins */}
+                <div>
+                  <h4 className="text-xs uppercase text-muted-foreground font-semibold tracking-wider mb-3 flex items-center gap-1.5">
+                    <Shield className="h-3.5 w-3.5 text-purple-500" /> Department Admins ({deptAdmins.length})
+                  </h4>
+                  {deptAdmins.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                      {deptAdmins.map((m) => (
+                        <div key={m.id} className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-purple-500/20 text-purple-700 dark:text-purple-300 font-bold flex items-center justify-center text-xs">
+                            {m.name?.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold truncate">{m.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{m.email}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">No admins assigned to this department yet.</p>
                   )}
                 </div>
-              </div>
 
-              {isSuperAdmin && (
-                <div className="flex items-center justify-end gap-2 border-t pt-4 mt-auto">
-                  <Button variant="outline" size="sm" onClick={() => handleOpenModal(dept)}>
-                    <Edit2 className="h-3.5 w-3.5 mr-1" /> Edit
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDelete(dept.id)} className="text-muted-foreground hover:text-destructive">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                {/* Department Employees */}
+                <div className="border-t pt-4">
+                  <h4 className="text-xs uppercase text-muted-foreground font-semibold tracking-wider mb-3 flex items-center gap-1.5">
+                    <UserIcon className="h-3.5 w-3.5 text-blue-500" /> Department Employees ({deptEmployees.length})
+                  </h4>
+                  {deptEmployees.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                      {deptEmployees.map((m) => (
+                        <div key={m.id} className="p-3 rounded-lg bg-muted/50 border border-border flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-xs">
+                            {m.name?.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate">{m.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{m.email}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">No employees assigned to this department yet.</p>
+                  )}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          );
+        })}
 
         {departments.length === 0 && (
-          <div className="col-span-full py-12 text-center text-muted-foreground">
-            No departments created yet. {isSuperAdmin && 'Click "Add Department" to get started.'}
+          <div className="py-12 text-center text-muted-foreground">
+            No departments created yet. {isSuperAdmin && 'Click "Add Department" to create one.'}
           </div>
         )}
       </div>
