@@ -253,6 +253,10 @@ export default function AdminDashboardPage() {
                         <Badge variant="super_admin" className="text-[10px]">
                           ALL DEPARTMENTS
                         </Badge>
+                      ) : u.role === 'admin' && !isSuperAdmin ? (
+                        <Badge variant="outline" className="text-xs font-medium border-purple-500/30 text-purple-600 dark:text-purple-400">
+                          {u.department?.name || 'ADMIN (ENROLLED)'}
+                        </Badge>
                       ) : (
                         <select
                           value={u.departmentId || ''}

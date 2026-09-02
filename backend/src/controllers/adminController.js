@@ -80,16 +80,21 @@ const updateUserDepartment = async (req, res, next) => {
   try {
     const { departmentId } = req.body;
 
-    const user = await User.findByPk(req.params.id);
-    if (!user) return res.status(404).json({ message: 'User not found.' });
+    const userToUpdate = await User.findByPk(req.params.id);
+    if (!userToUpdate) return res.status(404).json({ message: 'User not found.' });
+
+    // Regular Admins (non-super_admin) CANNOT change the enrolled department of an Admin or Super Admin!
+    if (req.user.role !== 'super_admin' && (userToUpdate.role === 'admin' || userToUpdate.role === 'super_admin')) {
+      return res.status(403).json({ message: 'Only Super Admin can change the enrolled department of an Admin.' });
+    }
 
     if (departmentId) {
       const department = await Department.findByPk(departmentId);
       if (!department) return res.status(404).json({ message: 'Department not found.' });
     }
 
-    await user.update({ departmentId: departmentId || null });
-    return res.status(200).json({ message: 'User department updated successfully.', user });
+    await userToUpdate.update({ departmentId: departmentId || null });
+    return res.status(200).json({ message: 'User department updated successfully.', user: userToUpdate });
   } catch (error) {
     next(error);
   }
