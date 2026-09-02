@@ -4,13 +4,15 @@ import { fetchTasks } from '../api/tasks';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
-import { ListTodo, Clock, CheckCircle2, AlertCircle, Plus, ArrowRight } from 'lucide-react';
+import { ListTodo, Clock, CheckCircle2, AlertCircle, Plus, ArrowRight, XCircle } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
+import { useAuth } from '../context/AuthContext';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 export default function DashboardPage() {
+  const { isAdmin } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,15 +34,16 @@ export default function DashboardPage() {
   const pendingCount = tasks.filter((t) => t.status === 'pending').length;
   const inProgressCount = tasks.filter((t) => t.status === 'in_progress').length;
   const completedCount = tasks.filter((t) => t.status === 'completed').length;
+  const rejectedCount = tasks.filter((t) => t.status === 'rejected').length;
   const totalCount = tasks.length;
 
   const chartData = {
-    labels: ['Pending', 'In Progress', 'Completed'],
+    labels: ['Pending', 'In Progress', 'Completed', 'Rejected'],
     datasets: [
       {
-        data: [pendingCount, inProgressCount, completedCount],
-        backgroundColor: ['rgba(245, 158, 11, 0.8)', 'rgba(59, 130, 246, 0.8)', 'rgba(16, 185, 129, 0.8)'],
-        borderColor: ['rgba(245, 158, 11, 1)', 'rgba(59, 130, 246, 1)', 'rgba(16, 185, 129, 1)'],
+        data: [pendingCount, inProgressCount, completedCount, rejectedCount],
+        backgroundColor: ['rgba(245, 158, 11, 0.8)', 'rgba(59, 130, 246, 0.8)', 'rgba(16, 185, 129, 0.8)', 'rgba(244, 63, 94, 0.8)'],
+        borderColor: ['rgba(245, 158, 11, 1)', 'rgba(59, 130, 246, 1)', 'rgba(16, 185, 129, 1)', 'rgba(244, 63, 94, 1)'],
         borderWidth: 1,
       },
     ],
@@ -59,16 +62,24 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Overview of your assigned task metrics and progress</p>
+          <p className="text-muted-foreground">Overview of task metrics and workload progress</p>
         </div>
-        <Link to="/tasks">
-          <Button className="flex items-center gap-2">
-            <Plus className="h-4 w-4" /> Create Task
-          </Button>
-        </Link>
+        {isAdmin ? (
+          <Link to="/tasks">
+            <Button className="flex items-center gap-2">
+              <Plus className="h-4 w-4" /> Assign New Task
+            </Button>
+          </Link>
+        ) : (
+          <Link to="/tasks">
+            <Button variant="outline" className="flex items-center gap-2">
+              View My Tasks <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Tasks</CardTitle>
@@ -76,7 +87,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalCount}</div>
-            <p className="text-xs text-muted-foreground">Assigned tasks</p>
+            <p className="text-xs text-muted-foreground">All tasks</p>
           </CardContent>
         </Card>
 
@@ -87,7 +98,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pendingCount}</div>
-            <p className="text-xs text-muted-foreground">Awaiting start</p>
+            <p className="text-xs text-muted-foreground">Awaiting acceptance</p>
           </CardContent>
         </Card>
 
@@ -104,12 +115,23 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Rejected</CardTitle>
+            <XCircle className="h-4 w-4 text-rose-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{rejectedCount}</div>
+            <p className="text-xs text-muted-foreground">Rejected by employee</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle>
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{completedCount}</div>
-            <p className="text-xs text-muted-foreground">Marked finished</p>
+            <p className="text-xs text-muted-foreground">Finished tasks</p>
           </CardContent>
         </Card>
       </div>

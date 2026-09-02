@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchTasks, createTask, updateTask, deleteTask } from '../api/tasks';
+import { fetchTasks, createTask, deleteTask } from '../api/tasks';
 import { fetchAdminUsers } from '../api/admin';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
-import { Plus, Search, Filter, Trash2, Calendar, User as UserIcon } from 'lucide-react';
+import { Plus, Search, Filter, Trash2, Calendar, User as UserIcon, Building2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function TasksPage() {
@@ -24,7 +24,6 @@ export default function TasksPage() {
   const [users, setUsers] = useState([]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [status, setStatus] = useState('pending');
   const [dueDate, setDueDate] = useState('');
   const [assigneeId, setAssigneeId] = useState('');
   const [createLoading, setCreateLoading] = useState(false);
@@ -66,30 +65,19 @@ export default function TasksPage() {
       await createTask({
         title,
         description,
-        status,
         dueDate: dueDate || null,
         assigneeId: assigneeId || user.id,
       });
       setIsModalOpen(false);
       setTitle('');
       setDescription('');
-      setStatus('pending');
       setDueDate('');
       setAssigneeId('');
       loadTasks();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to create task');
+      alert(err.response?.data?.message || 'Failed to assign task');
     } finally {
       setCreateLoading(false);
-    }
-  };
-
-  const handleStatusChange = async (taskId, newStatus) => {
-    try {
-      await updateTask(taskId, { status: newStatus });
-      setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)));
-    } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update status');
     }
   };
 
@@ -108,11 +96,17 @@ export default function TasksPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
-          <p className="text-muted-foreground">Manage and track your assigned work items</p>
+          <p className="text-muted-foreground">
+            {isAdmin ? 'Manage and assign tasks across employees' : 'View and respond to your assigned tasks'}
+          </p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" /> Create New Task
-        </Button>
+
+        {/* Only Admin / Super Admin can see and create tasks */}
+        {isAdmin && (
+          <Button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" /> Assign New Task
+          </Button>
+        )}
       </div>
 
       {/* Filter and Search Bar */}
@@ -144,6 +138,7 @@ export default function TasksPage() {
               <option value="">All Statuses</option>
               <option value="pending">Pending</option>
               <option value="in_progress">In Progress</option>
+              <option value="rejected">Rejected</option>
               <option value="completed">Completed</option>
             </select>
           </div>
@@ -161,7 +156,14 @@ export default function TasksPage() {
             <Card key={task.id} className="flex flex-col justify-between hover:shadow-md transition-shadow border-border/50">
               <CardHeader>
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <Badge variant={task.status}>{task.status.replace('_', ' ').toUpperCase()}</Badge>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant={task.status}>{task.status.replace('_', ' ').toUpperCase()}</Badge>
+                    {task.assignee?.department && (
+                      <Badge variant="outline" className="text-[10px] flex items-center gap-1">
+                        <Building2 className="h-2.5 w-2.5" /> {task.assignee.department.name}
+                      </Badge>
+                    )}
+                  </div>
                   {isAdmin && (
                     <Button variant="ghost" size="sm" onClick={() => handleDeleteTask(task.id)} className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive">
                       <Trash2 className="h-4 w-4" />
@@ -192,19 +194,9 @@ export default function TasksPage() {
                 </div>
               </CardContent>
 
-              <CardFooter className="border-t pt-3 flex items-center justify-between">
-                <select
-                  value={task.status}
-                  onChange={(e) => handleStatusChange(task.id, e.target.value)}
-                  className="h-8 rounded border border-input bg-background px-2 text-xs font-medium focus-visible:outline-none"
-                >
-                  <option value="pending">Pending</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="completed">Completed</option>
-                </select>
-
+              <CardFooter className="border-t pt-3 flex items-center justify-end">
                 <Link to={`/tasks/${task.id}`}>
-                  <Button variant="outline" size="sm">Details</Button>
+                  <Button variant="default" size="sm">View Details & Response</Button>
                 </Link>
               </CardFooter>
             </Card>
@@ -225,58 +217,47 @@ export default function TasksPage() {
         </div>
       )}
 
-      {/* Create Task Modal */}
-      {isModalOpen && (
+      {/* Create Task Modal — Admin/Super Admin Only */}
+      {isModalOpen && isAdmin && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
           <Card className="w-full max-w-lg shadow-xl border-border">
             <CardHeader>
-              <CardTitle>Create New Task</CardTitle>
+              <CardTitle>Assign New Task</CardTitle>
             </CardHeader>
             <form onSubmit={handleCreateTask}>
               <CardContent className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium">Title</label>
-                  <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Task Title" required />
+                  <label className="text-xs font-medium">Task Title</label>
+                  <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Prepare Q3 Financial Audit" required />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium">Description</label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Task Details..."
-                    className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    placeholder="Task details and instructions for the employee..."
+                    className="flex min-h-[90px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium">Status</label>
-                    <select
-                      value={status}
-                      onChange={(e) => setStatus(e.target.value)}
-                      className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="in_progress">In Progress</option>
-                      <option value="completed">Completed</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium">Due Date</label>
-                    <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-                  </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Due Date</label>
+                  <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
                 </div>
 
-                {isAdmin && users.length > 0 && (
+                {users.length > 0 && (
                   <div className="space-y-1">
-                    <label className="text-xs font-medium">Assign User</label>
+                    <label className="text-xs font-medium">Assign Employee</label>
                     <select
                       value={assigneeId}
                       onChange={(e) => setAssigneeId(e.target.value)}
                       className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      required
                     >
-                      <option value="">Assign to Me</option>
+                      <option value="">-- Select Employee --</option>
                       {users.map((u) => (
-                        <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                        <option key={u.id} value={u.id}>
+                          {u.name} ({u.role.replace('_', ' ')}) {u.department ? `[${u.department.name}]` : ''}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -284,7 +265,7 @@ export default function TasksPage() {
               </CardContent>
               <CardFooter className="flex justify-end gap-2 border-t pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                <Button type="submit" disabled={createLoading}>{createLoading ? 'Saving...' : 'Create Task'}</Button>
+                <Button type="submit" disabled={createLoading}>{createLoading ? 'Assigning...' : 'Assign Task'}</Button>
               </CardFooter>
             </form>
           </Card>
