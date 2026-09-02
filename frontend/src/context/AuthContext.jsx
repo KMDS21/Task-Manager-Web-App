@@ -50,6 +50,10 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const isSuperAdmin = user?.role === 'super_admin';
+  const isAdmin = user?.role === 'admin' || isSuperAdmin;
+  const isEmployee = user?.role === 'employee';
+
   return (
     <AuthContext.Provider
       value={{
@@ -59,7 +63,9 @@ export const AuthProvider = ({ children }) => {
         login,
         register,
         logout,
-        isAdmin: user?.role === 'admin',
+        isSuperAdmin,
+        isAdmin,
+        isEmployee,
       }}
     >
       {children}
@@ -68,4 +74,3 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
-
