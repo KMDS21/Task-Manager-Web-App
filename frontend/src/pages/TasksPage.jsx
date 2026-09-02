@@ -7,12 +7,15 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../compone
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
-import { Plus, Search, Filter, Trash2, Calendar, User as UserIcon, Building2 } from 'lucide-react';
+import { Plus, Search, Filter, Trash2, Calendar, User as UserIcon, Shield, Building2, CheckSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function TasksPage() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isSuperAdmin } = useAuth();
   const [tasks, setTasks] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [adminViewTab, setAdminViewTab] = useState('my_assigned'); // 'my_assigned' | 'department' | 'all'
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -23,13 +26,21 @@ export default function TasksPage() {
   // Assign Task Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [users, setUsers] = useState([]);
-  const [departments, setDepartments] = useState([]);
-  const [selectedDeptFilter, setSelectedDeptFilter] = useState('');
+  const [modalDeptFilter, setModalDeptFilter] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [assigneeId, setAssigneeId] = useState('');
   const [createLoading, setCreateLoading] = useState(false);
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchDepartments().then((res) => {
+        const depts = res.data.departments || [];
+        setDepartments(depts);
+      }).catch(() => {});
+    }
+  }, [isAdmin, user]);
 
   useEffect(() => {
     loadTasks();
@@ -40,9 +51,10 @@ export default function TasksPage() {
       Promise.all([fetchAdminUsers(), fetchDepartments()])
         .then(([usersRes, deptsRes]) => {
           setUsers(usersRes.data.users || []);
-          setDepartments(deptsRes.data.departments || []);
+          const depts = deptsRes.data.departments || [];
+          setDepartments(depts);
           if (user?.departmentId) {
-            setSelectedDeptFilter(user.departmentId);
+            setModalDeptFilter(user.departmentId);
           }
         })
         .catch(() => {});
@@ -52,7 +64,7 @@ export default function TasksPage() {
   const loadTasks = async () => {
     setLoading(true);
     try {
-      const res = await fetchTasks({ page, search, status: statusFilter, limit: 6 });
+      const res = await fetchTasks({ page, search, status: statusFilter, limit: 100 });
       setTasks(res.data.tasks || []);
       setTotal(res.data.total || 0);
       setTotalPages(res.data.totalPages || 1);
@@ -104,22 +116,43 @@ export default function TasksPage() {
     }
   };
 
-  // Filter users based on selected department in assignment modal
-  const filteredUsers = selectedDeptFilter
-    ? users.filter((u) => u.departmentId === selectedDeptFilter)
+  // Filter tasks based on view tab & department for Admin
+  let displayedTasks = tasks;
+  if (isAdmin) {
+    if (adminViewTab === 'my_assigned') {
+      displayedTasks = tasks.filter((t) => t.assigneeId === user?.id);
+    } else if (adminViewTab === 'department') {
+      displayedTasks = user?.departmentId
+        ? tasks.filter((t) => t.assignee?.departmentId === user.departmentId || t.createdById === user.id)
+        : tasks;
+    } else if (departmentFilter !== 'all') {
+      displayedTasks = tasks.filter((t) => t.assignee?.departmentId === departmentFilter);
+    }
+  }
+
+  // Count my assigned tasks for badge
+  const myAssignedCount = tasks.filter((t) => t.assigneeId === user?.id).length;
+
+  // Filter users in assignment modal based on modal department filter
+  const filteredModalUsers = modalDeptFilter
+    ? users.filter((u) => u.departmentId === modalDeptFilter)
     : users;
 
   const unassignedUsers = users.filter((u) => !u.departmentId);
+  const selectedModalDept = departments.find((d) => d.id === modalDeptFilter);
+  const userAdminDeptName = departments.find((d) => d.id === user?.departmentId)?.name || 'Admin';
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            {isAdmin ? 'Task Management' : 'My Assigned Tasks'}
+            {isAdmin ? 'Tasks Management' : 'My Assigned Tasks'}
           </h1>
-          <p className="text-muted-foreground">
-            {isAdmin ? 'Manage and assign tasks across department employees' : 'View, accept, and complete your assigned tasks'}
+          <p className="text-muted-foreground text-sm">
+            {isAdmin
+              ? 'View tasks assigned to you or manage department task assignments'
+              : 'View, accept, and complete your assigned tasks'}
           </p>
         </div>
 
@@ -129,6 +162,44 @@ export default function TasksPage() {
           </Button>
         )}
       </div>
+
+      {/* Admin Task Category Switcher Tabs */}
+      {isAdmin && (
+        <div className="flex flex-wrap items-center gap-2 mb-6 border-b pb-3">
+          <Button
+            variant={adminViewTab === 'my_assigned' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setAdminViewTab('my_assigned')}
+            className="flex items-center gap-2"
+          >
+            <UserIcon className="h-4 w-4 text-emerald-500" />
+            My Assigned Tasks
+            <Badge variant="secondary" className="ml-1 px-1.5 py-0.2 text-[10px]">
+              {myAssignedCount}
+            </Badge>
+          </Button>
+
+          <Button
+            variant={adminViewTab === 'department' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setAdminViewTab('department')}
+            className="flex items-center gap-2"
+          >
+            <Building2 className="h-4 w-4 text-blue-500" />
+            My Department Tasks
+          </Button>
+
+          <Button
+            variant={adminViewTab === 'all' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setAdminViewTab('all')}
+            className="flex items-center gap-2"
+          >
+            <Shield className="h-4 w-4 text-purple-500" />
+            All Department Overview
+          </Button>
+        </div>
+      )}
 
       {/* Filter and Search Bar */}
       <Card className="mb-8 border-border/50">
@@ -146,22 +217,44 @@ export default function TasksPage() {
             <Button type="submit" variant="secondary">Search</Button>
           </form>
 
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setPage(1);
-              }}
-              className="h-9 w-full md:w-48 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option value="">All Statuses</option>
-              <option value="pending">Pending</option>
-              <option value="in_progress">In Progress</option>
-              <option value="rejected">Rejected</option>
-              <option value="completed">Completed</option>
-            </select>
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            {/* Department Filter for Admins (visible on 'all' tab) */}
+            {isAdmin && adminViewTab === 'all' && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground shrink-0">Department:</span>
+                <select
+                  value={departmentFilter}
+                  onChange={(e) => setDepartmentFilter(e.target.value)}
+                  className="h-9 rounded-md border border-input bg-background px-3 text-xs font-semibold focus-visible:outline-none"
+                >
+                  <option value="all">All Departments</option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name} {user?.departmentId === d.id ? '(My Department)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Status Filter */}
+            <div className="flex items-center gap-1.5">
+              <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="h-9 rounded-md border border-input bg-background px-3 text-xs font-semibold focus-visible:outline-none"
+              >
+                <option value="">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="in_progress">In Progress</option>
+                <option value="rejected">Rejected</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -171,17 +264,17 @@ export default function TasksPage() {
         <div className="flex h-64 items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
         </div>
-      ) : tasks.length > 0 ? (
+      ) : displayedTasks.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {tasks.map((task) => (
+          {displayedTasks.map((task) => (
             <Card key={task.id} className="flex flex-col justify-between hover:shadow-md transition-shadow border-border/50">
               <CardHeader>
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge variant={task.status}>{task.status.replace('_', ' ').toUpperCase()}</Badge>
                     {task.assignee?.department && (
-                      <Badge variant="outline" className="text-[10px] flex items-center gap-1">
-                        <Building2 className="h-2.5 w-2.5" /> {task.assignee.department.name}
+                      <Badge variant="outline" className="text-[10px]">
+                        {task.assignee.department.name}
                       </Badge>
                     )}
                   </div>
@@ -200,6 +293,12 @@ export default function TasksPage() {
                 <p className="text-sm text-muted-foreground line-clamp-3 mb-4">{task.description || 'No description provided.'}</p>
 
                 <div className="space-y-2 text-xs text-muted-foreground border-t pt-3">
+                  {task.creator && (
+                    <div className="flex items-center gap-1.5">
+                      <Shield className="h-3.5 w-3.5 text-purple-500" />
+                      <span>Created by {task.creator.name} ({task.creator.department?.name || 'Admin'})</span>
+                    </div>
+                  )}
                   {task.dueDate && (
                     <div className="flex items-center gap-1.5">
                       <Calendar className="h-3.5 w-3.5 text-primary" />
@@ -226,18 +325,13 @@ export default function TasksPage() {
       ) : (
         <Card className="p-12 text-center border-dashed mb-8">
           <p className="text-muted-foreground">
-            {isAdmin ? 'No tasks found matching your filter criteria.' : 'You have no assigned tasks currently.'}
+            {isAdmin
+              ? adminViewTab === 'my_assigned'
+                ? 'You have no tasks assigned directly to you.'
+                : 'No tasks found matching your filter criteria.'
+              : 'You have no assigned tasks currently.'}
           </p>
         </Card>
-      )}
-
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>Previous</Button>
-          <span className="text-sm text-muted-foreground px-2">Page {page} of {totalPages}</span>
-          <Button variant="outline" size="sm" disabled={page === totalPages} onClick={() => setPage(page + 1)}>Next</Button>
-        </div>
       )}
 
       {/* Assign Task Modal */}
@@ -245,22 +339,35 @@ export default function TasksPage() {
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
           <Card className="w-full max-w-lg shadow-xl border-border">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-primary" /> Assign Task to Employee
-              </CardTitle>
+              <CardTitle>Assign New Task</CardTitle>
+              {/* Creator Admin & Department Information */}
+              <div className="mt-2 p-3 rounded-lg bg-muted/60 border border-border text-xs space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Created by Admin:</span>
+                  <span className="font-semibold text-foreground">
+                    {user?.name} ({userAdminDeptName})
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Target Employee Dept:</span>
+                  <span className="font-semibold text-primary">
+                    {selectedModalDept ? selectedModalDept.name : 'All Departments'}
+                  </span>
+                </div>
+              </div>
             </CardHeader>
             <form onSubmit={handleCreateTask}>
               <CardContent className="space-y-4">
                 <div className="space-y-1">
                   <label className="text-xs font-medium">Task Title</label>
-                  <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Prepare Q3 Financial Audit" required />
+                  <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Sales Report / Software Bug Fix" required />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium">Description</label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Task instructions..."
+                    placeholder="Provide task instructions for the employee..."
                     className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none"
                   />
                 </div>
@@ -269,15 +376,15 @@ export default function TasksPage() {
                   <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
                 </div>
 
-                {/* Department Selection Filter */}
+                {/* Target Department Selection */}
                 <div className="space-y-1 border-t pt-3">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                    <Building2 className="h-3.5 w-3.5" /> Filter Employee by Department
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Target Employee Department
                   </label>
                   <select
-                    value={selectedDeptFilter}
+                    value={modalDeptFilter}
                     onChange={(e) => {
-                      setSelectedDeptFilter(e.target.value);
+                      setModalDeptFilter(e.target.value);
                       setAssigneeId('');
                     }}
                     className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm font-medium"
@@ -302,7 +409,7 @@ export default function TasksPage() {
                   >
                     <option value="">-- Choose Employee --</option>
                     {departments.map((dept) => {
-                      const deptUsers = filteredUsers.filter((u) => u.departmentId === dept.id);
+                      const deptUsers = filteredModalUsers.filter((u) => u.departmentId === dept.id);
                       if (deptUsers.length === 0) return null;
                       return (
                         <optgroup key={dept.id} label={dept.name}>
@@ -314,7 +421,7 @@ export default function TasksPage() {
                         </optgroup>
                       );
                     })}
-                    {unassignedUsers.length > 0 && (!selectedDeptFilter || selectedDeptFilter === 'unassigned') && (
+                    {unassignedUsers.length > 0 && (!modalDeptFilter || modalDeptFilter === 'unassigned') && (
                       <optgroup label="Unassigned Employees">
                         {unassignedUsers.map((u) => (
                           <option key={u.id} value={u.id}>
