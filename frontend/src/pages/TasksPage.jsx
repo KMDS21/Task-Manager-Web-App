@@ -9,6 +9,7 @@ import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Plus, Search, Filter, Trash2, Calendar, User as UserIcon, Shield, Building2, CheckSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { formatDateDDMMYYYY } from '../utils/date';
 
 export default function TasksPage() {
   const { user, isAdmin, isSuperAdmin } = useAuth();
@@ -302,7 +303,7 @@ export default function TasksPage() {
                   {task.dueDate && (
                     <div className="flex items-center gap-1.5">
                       <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
-                      <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
+                      <span>Due: {formatDateDDMMYYYY(task.dueDate)}</span>
                     </div>
                   )}
                   {task.assignee && (

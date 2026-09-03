@@ -6,6 +6,7 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { ArrowLeft, Calendar, User as UserIcon, Trash2, Clock, Upload, FileText, Download, CheckCircle, XCircle, AlertTriangle, Shield } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { formatDateDDMMYYYY } from '../utils/date';
 
 export default function TaskDetailPage() {
   const { id } = useParams();
@@ -209,7 +210,7 @@ export default function TaskDetailPage() {
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-primary" />
               <span className="text-muted-foreground">Due Date:</span>
-              <span className="font-medium">{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'None set'}</span>
+              <span className="font-medium">{task.dueDate ? formatDateDDMMYYYY(task.dueDate) : 'None set'}</span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -229,7 +230,7 @@ export default function TaskDetailPage() {
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-primary" />
               <span className="text-muted-foreground">Created On:</span>
-              <span className="font-medium">{new Date(task.createdAt).toLocaleDateString()}</span>
+              <span className="font-medium">{formatDateDDMMYYYY(task.createdAt)}</span>
             </div>
           </div>
         </CardContent>

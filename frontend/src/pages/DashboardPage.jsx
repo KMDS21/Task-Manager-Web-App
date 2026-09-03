@@ -21,6 +21,8 @@ import {
 import { Doughnut, Line } from 'react-chartjs-2';
 import { useAuth } from '../context/AuthContext';
 
+import { formatDateDDMMYYYY } from '../utils/date';
+
 ChartJS.register(
   ArcElement,
   Tooltip,
@@ -473,7 +475,7 @@ export default function DashboardPage() {
                         </Badge>
                         {task.dueDate && (
                           <span className="text-[11px] text-muted-foreground">
-                            Due: {new Date(task.dueDate).toLocaleDateString()}
+                            Due: {formatDateDDMMYYYY(task.dueDate)}
                           </span>
                         )}
                       </div>
