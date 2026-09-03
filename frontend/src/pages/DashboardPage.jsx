@@ -93,11 +93,47 @@ export default function DashboardPage() {
     datasets: [
       {
         data: [pendingCount, inProgressCount, completedCount, rejectedCount],
-        backgroundColor: ['rgba(245, 158, 11, 0.8)', 'rgba(59, 130, 246, 0.8)', 'rgba(16, 185, 129, 0.8)', 'rgba(244, 63, 94, 0.8)'],
-        borderColor: ['rgba(245, 158, 11, 1)', 'rgba(59, 130, 246, 1)', 'rgba(16, 185, 129, 1)', 'rgba(244, 63, 94, 1)'],
-        borderWidth: 1,
+        backgroundColor: [
+          'rgba(245, 158, 11, 0.85)',
+          'rgba(59, 130, 246, 0.85)',
+          'rgba(16, 185, 129, 0.85)',
+          'rgba(244, 63, 94, 0.85)',
+        ],
+        borderColor: [
+          'rgba(245, 158, 11, 1)',
+          'rgba(59, 130, 246, 1)',
+          'rgba(16, 185, 129, 1)',
+          'rgba(244, 63, 94, 1)',
+        ],
+        borderWidth: 2,
       },
     ],
+  };
+
+  const donutChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '62%',
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          usePointStyle: true,
+          boxWidth: 8,
+          padding: 16,
+          font: { size: 11, weight: '500' },
+        },
+      },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            const count = context.parsed;
+            const percentage = totalCount > 0 ? ((count / totalCount) * 100).toFixed(0) : 0;
+            return ` ${context.label}: ${count} (${percentage}%)`;
+          },
+        },
+      },
+    },
   };
 
   // Generate timeframe date range array for Line Chart (1 Week / 1 Month)
@@ -304,18 +340,40 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Middle Grid: Left (Donut Status Breakdown), Right (Line Chart: Tasks Completed Over Time with 1 Week / 1 Month Selector) */}
+      {/* Middle Grid: Left (Enlarged Donut Status Breakdown with details at bottom), Right (Line Chart: Tasks Completed Over Time) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Donut Chart */}
-        <Card className="lg:col-span-1 border-border/60 shadow-sm">
+        {/* Left: Enlarged Donut Chart with Details at Bottom in a Line */}
+        <Card className="lg:col-span-1 border-border/60 shadow-sm flex flex-col justify-between">
           <CardHeader>
             <CardTitle className="text-base sm:text-lg">{isAdmin ? 'Department Breakdown' : 'My Status Breakdown'}</CardTitle>
           </CardHeader>
-          <CardContent className="flex items-center justify-center p-4 sm:p-6">
+          <CardContent className="flex flex-col items-center justify-between p-4 sm:p-6 space-y-4 flex-1">
             {totalCount > 0 ? (
-              <div className="w-48 h-48 sm:w-56 sm:h-56">
-                <Doughnut data={donutChartData} options={{ maintainAspectRatio: true }} />
-              </div>
+              <>
+                <div className="w-64 h-64 sm:w-72 sm:h-72 my-auto">
+                  <Doughnut data={donutChartData} options={donutChartOptions} />
+                </div>
+
+                {/* Details shown at bottom in a horizontal line grid */}
+                <div className="grid grid-cols-4 gap-2 w-full pt-3 border-t">
+                  <div className="flex flex-col items-center p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-center">
+                    <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">Pending</span>
+                    <span className="text-sm font-bold text-amber-800 dark:text-amber-300">{pendingCount}</span>
+                  </div>
+                  <div className="flex flex-col items-center p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-center">
+                    <span className="text-[11px] font-semibold text-blue-700 dark:text-blue-400">Progress</span>
+                    <span className="text-sm font-bold text-blue-800 dark:text-blue-300">{inProgressCount}</span>
+                  </div>
+                  <div className="flex flex-col items-center p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-center">
+                    <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">Completed</span>
+                    <span className="text-sm font-bold text-emerald-800 dark:text-emerald-300">{completedCount}</span>
+                  </div>
+                  <div className="flex flex-col items-center p-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-center">
+                    <span className="text-[11px] font-semibold text-rose-700 dark:text-rose-400">Rejected</span>
+                    <span className="text-sm font-bold text-rose-800 dark:text-rose-300">{rejectedCount}</span>
+                  </div>
+                </div>
+              </>
             ) : (
               <p className="text-xs sm:text-sm text-muted-foreground py-12">No tasks available to graph</p>
             )}
@@ -344,8 +402,8 @@ export default function DashboardPage() {
               </select>
             </div>
           </CardHeader>
-          <CardContent className="pt-2 p-4 sm:p-6 flex-1 min-h-[220px]">
-            <div className="w-full h-full min-h-[220px]">
+          <CardContent className="pt-2 p-4 sm:p-6 flex-1 min-h-[260px]">
+            <div className="w-full h-full min-h-[260px]">
               <Line data={lineChartData} options={lineChartOptions} />
             </div>
           </CardContent>
