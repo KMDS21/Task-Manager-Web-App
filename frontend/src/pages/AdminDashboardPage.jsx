@@ -101,19 +101,19 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
-      <div className="flex items-center gap-3 mb-8">
+    <div className="w-full px-4 sm:px-8 py-6 space-y-6">
+      <div className="flex items-center gap-3">
         <div className="p-3 bg-primary/10 rounded-xl">
-          <Shield className="h-8 w-8 text-primary" />
+          <Shield className="h-7 w-7 text-primary" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Admin Control Center</h1>
-          <p className="text-muted-foreground">Manage employees, department assignments, and platform metrics</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Admin Control Center</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm">Manage employees, department assignments, and platform metrics</p>
         </div>
       </div>
 
       {error && (
-        <div className="mb-6 p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive flex items-center gap-3">
+        <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive flex items-center gap-3">
           <AlertCircle className="h-5 w-5 shrink-0" />
           <p className="text-sm font-medium">{error}</p>
         </div>
@@ -121,63 +121,63 @@ export default function AdminDashboardPage() {
 
       {/* Metrics Grid */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-          <Card className="border-border/50">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          <Card className="border-border/50 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
               <CardTitle className="text-xs font-medium text-muted-foreground">Total Users</CardTitle>
               <Users className="h-4 w-4 text-blue-500" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 pt-0">
               <div className="text-2xl font-bold">{stats.totalUsers}</div>
             </CardContent>
           </Card>
 
-          <Card className="border-border/50">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <Card className="border-border/50 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
               <CardTitle className="text-xs font-medium text-muted-foreground">Departments</CardTitle>
               <Building2 className="h-4 w-4 text-purple-500" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 pt-0">
               <div className="text-2xl font-bold">{stats.totalDepartments}</div>
             </CardContent>
           </Card>
 
-          <Card className="border-border/50">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <Card className="border-border/50 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
               <CardTitle className="text-xs font-medium text-muted-foreground">Pending Tasks</CardTitle>
               <Clock className="h-4 w-4 text-amber-500" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 pt-0">
               <div className="text-2xl font-bold">{stats.pendingTasks}</div>
             </CardContent>
           </Card>
 
-          <Card className="border-border/50">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <Card className="border-border/50 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
               <CardTitle className="text-xs font-medium text-muted-foreground">In Progress</CardTitle>
               <ListTodo className="h-4 w-4 text-blue-500" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 pt-0">
               <div className="text-2xl font-bold">{stats.inProgressTasks}</div>
             </CardContent>
           </Card>
 
-          <Card className="border-border/50">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <Card className="border-border/50 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
               <CardTitle className="text-xs font-medium text-muted-foreground">Rejected</CardTitle>
               <XCircle className="h-4 w-4 text-rose-500" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 pt-0">
               <div className="text-2xl font-bold">{stats.rejectedTasks}</div>
             </CardContent>
           </Card>
 
-          <Card className="border-border/50">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <Card className="border-border/50 shadow-sm col-span-2 sm:col-span-1">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
               <CardTitle className="text-xs font-medium text-muted-foreground">Completed</CardTitle>
               <CheckCircle2 className="h-4 w-4 text-emerald-500" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 pt-0">
               <div className="text-2xl font-bold">{stats.completedTasks}</div>
             </CardContent>
           </Card>
@@ -186,10 +186,10 @@ export default function AdminDashboardPage() {
 
       {/* User & Department Management Section */}
       <Card className="border-border/50 shadow-sm">
-        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-6">
           <div>
-            <CardTitle>Employee & Department Management</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">Assign employees to departments and manage roles</p>
+            <CardTitle className="text-lg sm:text-xl">Employee & Department Management</CardTitle>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Assign employees to departments and manage roles</p>
           </div>
           <form onSubmit={handleSearch} className="flex items-center gap-2 w-full sm:w-auto">
             <div className="relative w-full sm:w-64">
@@ -198,13 +198,13 @@ export default function AdminDashboardPage() {
                 placeholder="Search users..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
+                className="pl-9 text-xs sm:text-sm"
               />
             </div>
             <Button type="submit" variant="secondary" size="sm">Search</Button>
           </form>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6 pt-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="text-xs uppercase bg-muted/50 text-muted-foreground border-b border-border">
@@ -221,12 +221,12 @@ export default function AdminDashboardPage() {
                 {users.map((u) => (
                   <tr key={u.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3 font-medium flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-xs">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-xs shrink-0">
                         {u.name?.charAt(0).toUpperCase()}
                       </div>
-                      {u.name}
+                      <span className="truncate">{u.name}</span>
                       {u.id === currentUser?.id && (
-                        <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-medium">(You)</span>
+                        <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-medium shrink-0">(You)</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{u.email}</td>

@@ -102,30 +102,30 @@ export default function DepartmentsPage() {
   const selectedDept = departments.find((d) => d.id === selectedDeptId);
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="w-full px-4 sm:px-8 py-6 space-y-6">
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Department Directory</h1>
-          <p className="text-muted-foreground text-sm">Organize departments, view admins, and track employees</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Department Directory</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm">Organize departments, view admins, and track employees</p>
         </div>
 
         {isSuperAdmin && (
-          <Button onClick={() => handleOpenModal()} className="flex items-center gap-2">
+          <Button onClick={() => handleOpenModal()} className="w-full sm:w-auto flex items-center justify-center gap-2">
             <Plus className="h-4 w-4" /> Add Department
           </Button>
         )}
       </div>
 
       {success && (
-        <div className="mb-6 p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center gap-3">
+        <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center gap-3">
           <CheckCircle2 className="h-5 w-5 shrink-0" />
           <p className="text-sm font-medium">{success}</p>
         </div>
       )}
 
       {error && (
-        <div className="mb-6 p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive flex items-center gap-3">
+        <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive flex items-center gap-3">
           <AlertCircle className="h-5 w-5 shrink-0" />
           <p className="text-sm font-medium">{error}</p>
         </div>
@@ -137,7 +137,7 @@ export default function DepartmentsPage() {
           variant="outline"
           size="sm"
           onClick={() => setSelectedDeptId('all')}
-          className="mb-6 flex items-center gap-2"
+          className="flex items-center gap-2 text-xs"
         >
           <ArrowLeft className="h-4 w-4" /> Back to All Departments
         </Button>
@@ -145,7 +145,7 @@ export default function DepartmentsPage() {
 
       {/* OVERVIEW GRID VIEW: Shown when "All Departments" is active */}
       {selectedDeptId === 'all' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {departments.map((dept) => {
             const deptAdmins = dept.members?.filter((m) => m.role === 'admin' || m.role === 'super_admin') || [];
             const deptEmployees = dept.members?.filter((m) => m.role !== 'admin' && m.role !== 'super_admin') || [];
@@ -156,12 +156,12 @@ export default function DepartmentsPage() {
                 className="border-border/50 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
                 onClick={() => setSelectedDeptId(dept.id)}
               >
-                <CardHeader className="pb-3">
+                <CardHeader className="pb-3 p-4 sm:p-6">
                   <div className="flex items-start justify-between gap-2 mb-1">
-                    <CardTitle className="text-xl font-semibold">
+                    <CardTitle className="text-lg sm:text-xl font-semibold">
                       {dept.name}
                     </CardTitle>
-                    <Badge variant="outline" className="shrink-0 flex items-center gap-1">
+                    <Badge variant="outline" className="shrink-0 flex items-center gap-1 text-[10px]">
                       <Users className="h-3 w-3" /> {dept.members?.length || 0}
                     </Badge>
                   </div>
@@ -170,12 +170,12 @@ export default function DepartmentsPage() {
                   </p>
                 </CardHeader>
 
-                <CardContent className="space-y-3 pt-0 flex-1">
+                <CardContent className="space-y-3 pt-0 flex-1 px-4 sm:px-6">
                   <div className="border-t pt-3 space-y-2 text-xs">
                     {/* Admin summary */}
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground flex items-center gap-1">
-                        <Shield className="h-3.5 w-3.5 text-purple-500" /> Admin:
+                        <Shield className="h-3.5 w-3.5 text-purple-500 shrink-0" /> Admin:
                       </span>
                       <span className="font-semibold text-foreground truncate max-w-[140px]">
                         {deptAdmins.length > 0 ? deptAdmins.map((a) => a.name).join(', ') : 'None assigned'}
@@ -185,7 +185,7 @@ export default function DepartmentsPage() {
                     {/* Employee summary */}
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground flex items-center gap-1">
-                        <UserIcon className="h-3.5 w-3.5 text-blue-500" /> Employees:
+                        <UserIcon className="h-3.5 w-3.5 text-blue-500 shrink-0" /> Employees:
                       </span>
                       <span className="font-semibold text-foreground">
                         {deptEmployees.length} Employee{deptEmployees.length !== 1 ? 's' : ''}
@@ -194,7 +194,7 @@ export default function DepartmentsPage() {
                   </div>
                 </CardContent>
 
-                <CardFooter className="border-t pt-3 flex items-center justify-between text-xs font-semibold text-primary">
+                <CardFooter className="border-t p-3 sm:p-4 flex items-center justify-between text-xs font-semibold text-primary">
                   <span>View Employees & Details</span>
                   <ChevronRight className="h-4 w-4" />
                 </CardFooter>
@@ -203,7 +203,7 @@ export default function DepartmentsPage() {
           })}
 
           {departments.length === 0 && (
-            <div className="col-span-full py-12 text-center text-muted-foreground">
+            <div className="col-span-full py-12 text-center text-muted-foreground text-xs sm:text-sm">
               No departments created yet. {isSuperAdmin && 'Click "Add Department" to get started.'}
             </div>
           )}
@@ -213,17 +213,17 @@ export default function DepartmentsPage() {
       {/* DETAILED DRILLDOWN VIEW: Shown when a specific department is clicked/selected */}
       {selectedDeptId !== 'all' && selectedDept && (
         <Card className="border-border/50 shadow-sm overflow-hidden">
-          <CardHeader className="bg-muted/30 border-b pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <CardHeader className="bg-muted/30 border-b p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-3 mb-1">
-                <CardTitle className="text-2xl font-bold">
+              <div className="flex items-center gap-3 mb-1 flex-wrap">
+                <CardTitle className="text-xl sm:text-2xl font-bold">
                   {selectedDept.name}
                 </CardTitle>
                 <Badge variant="outline" className="flex items-center gap-1 text-xs">
                   <Users className="h-3.5 w-3.5" /> {selectedDept.members?.length || 0} Total Members
                 </Badge>
               </div>
-              <p className="text-sm text-muted-foreground">{selectedDept.description || 'No description provided.'}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">{selectedDept.description || 'No description provided.'}</p>
             </div>
 
             {isSuperAdmin && (
@@ -238,17 +238,17 @@ export default function DepartmentsPage() {
             )}
           </CardHeader>
 
-          <CardContent className="pt-6 space-y-6">
+          <CardContent className="p-4 sm:p-6 space-y-6">
             {/* Department Admins Section */}
             <div>
               <h4 className="text-xs uppercase text-muted-foreground font-semibold tracking-wider mb-3 flex items-center gap-1.5">
                 <Shield className="h-3.5 w-3.5 text-purple-500" /> DEPARTMENT ADMINS ({selectedDept.members?.filter((m) => m.role === 'admin' || m.role === 'super_admin').length || 0})
               </h4>
               {selectedDept.members?.filter((m) => m.role === 'admin' || m.role === 'super_admin').length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                   {selectedDept.members?.filter((m) => m.role === 'admin' || m.role === 'super_admin').map((m) => (
                     <div key={m.id} className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-purple-500/20 text-purple-700 dark:text-purple-300 font-bold flex items-center justify-center text-xs">
+                      <div className="h-8 w-8 rounded-full bg-purple-500/20 text-purple-700 dark:text-purple-300 font-bold flex items-center justify-center text-xs shrink-0">
                         {m.name?.charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -269,10 +269,10 @@ export default function DepartmentsPage() {
                 <UserIcon className="h-3.5 w-3.5 text-blue-500" /> DEPARTMENT EMPLOYEES ({selectedDept.members?.filter((m) => m.role !== 'admin' && m.role !== 'super_admin').length || 0})
               </h4>
               {selectedDept.members?.filter((m) => m.role !== 'admin' && m.role !== 'super_admin').length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                   {selectedDept.members?.filter((m) => m.role !== 'admin' && m.role !== 'super_admin').map((m) => (
                     <div key={m.id} className="p-3 rounded-lg bg-muted/50 border border-border flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-xs">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-xs shrink-0">
                         {m.name?.charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -294,13 +294,13 @@ export default function DepartmentsPage() {
       {showModal && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
           <Card className="w-full max-w-md border-border/80 shadow-lg">
-            <CardHeader>
-              <CardTitle>{editDept ? 'Edit Department' : 'Create Department'}</CardTitle>
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="text-lg">{editDept ? 'Edit Department' : 'Create Department'}</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6 pt-0">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Department Name</label>
+                  <label className="text-xs sm:text-sm font-medium">Department Name</label>
                   <Input
                     placeholder="e.g. Software Development, HR"
                     value={form.name}
@@ -308,7 +308,7 @@ export default function DepartmentsPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Description</label>
+                  <label className="text-xs sm:text-sm font-medium">Description</label>
                   <textarea
                     rows={3}
                     placeholder="Brief description of department duties..."

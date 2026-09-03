@@ -5,7 +5,7 @@ import { fetchDepartments } from '../api/departments';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
-import { ListTodo, Clock, CheckCircle2, AlertCircle, Plus, ArrowRight, XCircle } from 'lucide-react';
+import { ListTodo, Clock, CheckCircle2, AlertCircle, Plus, ArrowRight, XCircle, UserCheck } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { useAuth } from '../context/AuthContext';
@@ -51,6 +51,9 @@ export default function DashboardPage() {
         : tasks.filter((t) => t.assignee?.departmentId === selectedDeptId))
     : tasks; // Employees only get their own tasks from backend API
 
+  // Filter personal tasks assigned specifically to the logged-in user
+  const myPersonalTasks = tasks.filter((t) => t.assigneeId === user?.id);
+
   const pendingCount = filteredTasks.filter((t) => t.status === 'pending').length;
   const inProgressCount = filteredTasks.filter((t) => t.status === 'in_progress').length;
   const completedCount = filteredTasks.filter((t) => t.status === 'completed').length;
@@ -78,20 +81,21 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+    <div className="w-full px-4 sm:px-8 py-6 space-y-8">
+      {/* Top Header & Actions Bar - Stacks vertically on mobile */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
             {isAdmin ? 'Management Dashboard' : `Welcome, ${user?.name || 'Employee'}`}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-xs sm:text-sm">
             {isAdmin
               ? 'Overview of department task metrics and workload progress'
               : 'Your personal task dashboard — track and respond to your assigned work'}
           </p>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
           {/* Department Selector for Admins */}
           {isAdmin && (
             <div className="flex items-center gap-2">
@@ -99,7 +103,7 @@ export default function DashboardPage() {
               <select
                 value={selectedDeptId}
                 onChange={(e) => setSelectedDeptId(e.target.value)}
-                className="h-9 rounded-md border border-input bg-background px-3 text-xs font-semibold focus-visible:outline-none"
+                className="h-9 w-full sm:w-auto rounded-md border border-input bg-background px-3 text-xs font-semibold focus-visible:outline-none"
               >
                 <option value="all">All Departments</option>
                 {departments.map((d) => (
@@ -113,13 +117,13 @@ export default function DashboardPage() {
 
           {isAdmin ? (
             <Link to="/tasks">
-              <Button className="flex items-center gap-2">
+              <Button className="w-full sm:w-auto flex items-center justify-center gap-2">
                 <Plus className="h-4 w-4" /> Assign New Task
               </Button>
             </Link>
           ) : (
             <Link to="/tasks">
-              <Button variant="default" className="flex items-center gap-2">
+              <Button variant="default" className="w-full sm:w-auto flex items-center justify-center gap-2">
                 <ListTodo className="h-4 w-4" /> View My Tasks <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
@@ -127,70 +131,71 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+      {/* Responsive 5 Stat Cards Grid: Full screen width */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <Card className="border-border/60 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
               {isAdmin ? 'Total Tasks' : 'My Total Tasks'}
             </CardTitle>
-            <ListTodo className="h-4 w-4 text-primary" />
+            <ListTodo className="h-4 w-4 text-primary shrink-0" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalCount}</div>
-            <p className="text-xs text-muted-foreground">{isAdmin ? 'All department tasks' : 'Tasks assigned to you'}</p>
+          <CardContent className="p-4 pt-0">
+            <div className="text-2xl sm:text-3xl font-bold">{totalCount}</div>
+            <p className="text-[11px] text-muted-foreground line-clamp-1">{isAdmin ? 'All department tasks' : 'Assigned to you'}</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Pending</CardTitle>
-            <AlertCircle className="h-4 w-4 text-amber-500" />
+        <Card className="border-border/60 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Pending</CardTitle>
+            <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{pendingCount}</div>
-            <p className="text-xs text-muted-foreground">{isAdmin ? 'Awaiting employee action' : 'Awaiting your response'}</p>
+          <CardContent className="p-4 pt-0">
+            <div className="text-2xl sm:text-3xl font-bold">{pendingCount}</div>
+            <p className="text-[11px] text-muted-foreground line-clamp-1">{isAdmin ? 'Awaiting employee action' : 'Awaiting response'}</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">In Progress</CardTitle>
-            <Clock className="h-4 w-4 text-blue-500" />
+        <Card className="border-border/60 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">In Progress</CardTitle>
+            <Clock className="h-4 w-4 text-blue-500 shrink-0" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{inProgressCount}</div>
-            <p className="text-xs text-muted-foreground">{isAdmin ? 'Active work' : 'Tasks you accepted'}</p>
+          <CardContent className="p-4 pt-0">
+            <div className="text-2xl sm:text-3xl font-bold">{inProgressCount}</div>
+            <p className="text-[11px] text-muted-foreground line-clamp-1">{isAdmin ? 'Active work' : 'Accepted tasks'}</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Rejected</CardTitle>
-            <XCircle className="h-4 w-4 text-rose-500" />
+        <Card className="border-border/60 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Rejected</CardTitle>
+            <XCircle className="h-4 w-4 text-rose-500 shrink-0" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{rejectedCount}</div>
-            <p className="text-xs text-muted-foreground">{isAdmin ? 'Rejected by employee' : 'Tasks you rejected'}</p>
+          <CardContent className="p-4 pt-0">
+            <div className="text-2xl sm:text-3xl font-bold">{rejectedCount}</div>
+            <p className="text-[11px] text-muted-foreground line-clamp-1">{isAdmin ? 'Rejected by employee' : 'Tasks rejected'}</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+        <Card className="border-border/60 shadow-sm col-span-2 sm:col-span-1">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Completed</CardTitle>
+            <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{completedCount}</div>
-            <p className="text-xs text-muted-foreground">Finished tasks</p>
+          <CardContent className="p-4 pt-0">
+            <div className="text-2xl sm:text-3xl font-bold">{completedCount}</div>
+            <p className="text-[11px] text-muted-foreground line-clamp-1">Finished tasks</p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <Card className="lg:col-span-1">
+      {/* Main Charts & Overview Grid: Full screen width */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-1 border-border/60 shadow-sm">
           <CardHeader>
-            <CardTitle>{isAdmin ? 'Department Status Breakdown' : 'My Status Breakdown'}</CardTitle>
+            <CardTitle className="text-base sm:text-lg">{isAdmin ? 'Department Breakdown' : 'My Status Breakdown'}</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center justify-center p-6">
             {totalCount > 0 ? (
@@ -198,14 +203,14 @@ export default function DashboardPage() {
                 <Doughnut data={chartData} options={{ maintainAspectRatio: true }} />
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground py-12">No tasks assigned to display chart</p>
+              <p className="text-xs sm:text-sm text-muted-foreground py-12">No tasks available to graph</p>
             )}
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2 border-border/60 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>{isAdmin ? 'Recent Tasks' : 'My Recent Tasks'}</CardTitle>
+            <CardTitle className="text-base sm:text-lg">{isAdmin ? 'Recent Department Tasks' : 'My Recent Tasks'}</CardTitle>
             <Link to="/tasks" className="text-xs text-primary font-semibold flex items-center hover:underline">
               View All <ArrowRight className="h-3 w-3 ml-1" />
             </Link>
@@ -213,18 +218,20 @@ export default function DashboardPage() {
           <CardContent>
             <div className="divide-y divide-border">
               {filteredTasks.slice(0, 5).map((task) => (
-                <div key={task.id} className="py-3 flex items-center justify-between gap-4">
+                <div key={task.id} className="py-3 flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <Link to={`/tasks/${task.id}`} className="font-medium hover:underline block truncate">
+                    <Link to={`/tasks/${task.id}`} className="text-sm font-medium hover:underline block truncate">
                       {task.title}
                     </Link>
-                    <p className="text-xs text-muted-foreground truncate">{task.description || 'No description'}</p>
+                    <p className="text-xs text-muted-foreground truncate">{task.description || 'No description provided'}</p>
                   </div>
-                  <Badge variant={task.status}>{task.status.replace('_', ' ').toUpperCase()}</Badge>
+                  <Badge variant={task.status} className="shrink-0 text-[10px]">
+                    {task.status.replace('_', ' ').toUpperCase()}
+                  </Badge>
                 </div>
               ))}
               {filteredTasks.length === 0 && (
-                <p className="text-sm text-muted-foreground py-8 text-center">
+                <p className="text-xs sm:text-sm text-muted-foreground py-8 text-center">
                   {isAdmin ? 'No tasks assigned for this department.' : 'You have no assigned tasks currently.'}
                 </p>
               )}
@@ -232,7 +239,69 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* DISTINCT SECTION: "Your Task / My Assigned Tasks" section at bottom for Admins */}
+      {isAdmin && (
+        <Card className="border-border/60 shadow-sm">
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-4">
+            <div>
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <UserCheck className="h-5 w-5 text-emerald-500" /> Your Tasks (Assigned to Me)
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Tasks assigned directly to your account ({myPersonalTasks.length} task{myPersonalTasks.length !== 1 ? 's' : ''})
+              </p>
+            </div>
+
+            <Link to="/tasks">
+              <Button variant="outline" size="sm" className="text-xs flex items-center gap-1">
+                Manage My Tasks <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
+          </CardHeader>
+
+          <CardContent className="pt-4">
+            {myPersonalTasks.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {myPersonalTasks.slice(0, 8).map((task) => (
+                  <div key={task.id} className="p-3.5 rounded-lg border border-border/80 bg-muted/20 hover:bg-muted/40 transition-colors flex flex-col justify-between space-y-3">
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <Badge variant={task.status} className="text-[10px]">
+                          {task.status.replace('_', ' ').toUpperCase()}
+                        </Badge>
+                        {task.dueDate && (
+                          <span className="text-[11px] text-muted-foreground">
+                            Due: {new Date(task.dueDate).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                      <Link to={`/tasks/${task.id}`} className="font-semibold text-sm hover:underline line-clamp-1 block">
+                        {task.title}
+                      </Link>
+                      <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                        {task.description || 'No description provided.'}
+                      </p>
+                    </div>
+
+                    <div className="pt-2 border-t flex items-center justify-end">
+                      <Link to={`/tasks/${task.id}`}>
+                        <Button size="sm" variant="secondary" className="text-xs h-7 px-2.5">
+                          Respond & View
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs sm:text-sm text-muted-foreground py-6 text-center italic">
+                You have no personal tasks assigned to you right now.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
-
