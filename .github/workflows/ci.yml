@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, feature/testing, ui ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: taskapp
+          POSTGRES_PASSWORD: taskapp_dev_pw
+          POSTGRES_DB: taskmanager
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Run Backend Unit & Integration Tests
+        working-directory: ./backend
+        run: npm test
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: taskmanager
+          DB_USER: taskapp
+          DB_PASSWORD: taskapp_dev_pw
+          JWT_SECRET: ci-test-secret-key-12345
