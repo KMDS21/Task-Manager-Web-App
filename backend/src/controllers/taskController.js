@@ -1,4 +1,4 @@
-const { Task, File, User } = require('../models/index');
+const { Task, File, User, Department } = require('../models/index');
 const { Op } = require('sequelize');
 const path = require('path');
 const fs = require('fs');
@@ -8,30 +8,52 @@ const getAllTasks = async (req, res, next) => {
   try {
     const { search, status, page = 1, limit = 6 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
-    const where = {};
+    const conditions = [];
 
-    if (req.user.role !== 'admin') {
-      where.assigneeId = req.user.id;
+    // Role-based task scoping:
+    // Regular employees / non-admins ONLY see tasks strictly assigned to them
+    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+      conditions.push({ assigneeId: req.user.id });
+    } else if (req.user.role === 'admin' && req.user.departmentId) {
+      // Department Admin sees tasks created by them OR assigned to employees in their department
+      conditions.push({
+        [Op.or]: [
+          { createdById: req.user.id },
+          { '$assignee.department_id$': req.user.departmentId },
+        ],
+      });
     }
+    // Super Admin sees all tasks
 
-    if (status) where.status = status;
+    if (status) conditions.push({ status });
+
     if (search) {
-      where[Op.or] = [
-        { title: { [Op.iLike]: `%${search}%` } },
-        { description: { [Op.iLike]: `%${search}%` } },
-      ];
+      conditions.push({
+        [Op.or]: [
+          { title: { [Op.iLike]: `%${search}%` } },
+          { description: { [Op.iLike]: `%${search}%` } },
+        ],
+      });
     }
+
+    const where = conditions.length > 0 ? { [Op.and]: conditions } : {};
 
     const { count, rows } = await Task.findAndCountAll({
       where,
       include: [
-        { model: User, as: 'assignee', attributes: ['id', 'name', 'email'] },
+        {
+          model: User,
+          as: 'assignee',
+          attributes: ['id', 'name', 'email', 'departmentId'],
+          include: [{ model: Department, as: 'department', attributes: ['id', 'name'] }],
+        },
         { model: User, as: 'creator', attributes: ['id', 'name', 'email'] },
         { model: File, as: 'files' },
       ],
       order: [['createdAt', 'DESC']],
       limit: parseInt(limit),
       offset,
+      subQuery: false,
     });
 
     return res.status(200).json({
@@ -50,7 +72,12 @@ const getTask = async (req, res, next) => {
   try {
     const task = await Task.findByPk(req.params.id, {
       include: [
-        { model: User, as: 'assignee', attributes: ['id', 'name', 'email'] },
+        {
+          model: User,
+          as: 'assignee',
+          attributes: ['id', 'name', 'email', 'departmentId'],
+          include: [{ model: Department, as: 'department', attributes: ['id', 'name'] }],
+        },
         { model: User, as: 'creator', attributes: ['id', 'name', 'email'] },
         { model: File, as: 'files', include: [{ model: User, as: 'uploader', attributes: ['id', 'name'] }] },
       ],
@@ -58,7 +85,7 @@ const getTask = async (req, res, next) => {
 
     if (!task) return res.status(404).json({ message: 'Task not found.' });
 
-    if (req.user.role !== 'admin' && task.assigneeId !== req.user.id) {
+    if (req.user.role !== 'admin' && req.user.role !== 'super_admin' && task.assigneeId !== req.user.id) {
       return res.status(403).json({ message: 'Access denied.' });
     }
 
@@ -71,20 +98,92 @@ const getTask = async (req, res, next) => {
 // POST /api/tasks
 const createTask = async (req, res, next) => {
   try {
-    const { title, description, status, dueDate, assigneeId } = req.body;
+    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+      return res.status(403).json({ message: 'Employees cannot create tasks. Only Admin can assign tasks.' });
+    }
+
+    const { title, description, dueDate, assigneeId } = req.body;
 
     if (!title) return res.status(400).json({ message: 'Title is required.' });
 
     const task = await Task.create({
       title,
       description,
-      status: status || 'pending',
+      status: 'pending',
       dueDate,
-      assigneeId: assigneeId || req.user.id,
+      assigneeId: assigneeId || null,
       createdById: req.user.id,
     });
 
-    return res.status(201).json({ message: 'Task created successfully.', task });
+    return res.status(201).json({ message: 'Task created and assigned successfully.', task });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/tasks/:id/accept
+const acceptTask = async (req, res, next) => {
+  try {
+    const task = await Task.findByPk(req.params.id);
+    if (!task) return res.status(404).json({ message: 'Task not found.' });
+
+    if (task.assigneeId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+      return res.status(403).json({ message: 'Only the assigned employee can accept this task.' });
+    }
+
+    if (task.status !== 'pending') {
+      return res.status(400).json({ message: `Task cannot be accepted because it is already ${task.status}.` });
+    }
+
+    await task.update({ status: 'in_progress' });
+    return res.status(200).json({ message: 'Task accepted and moved to In Progress.', task });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/tasks/:id/reject
+const rejectTask = async (req, res, next) => {
+  try {
+    const { reason } = req.body;
+    if (!reason || !reason.trim()) {
+      return res.status(400).json({ message: 'Rejection reason is required.' });
+    }
+
+    const task = await Task.findByPk(req.params.id);
+    if (!task) return res.status(404).json({ message: 'Task not found.' });
+
+    if (task.assigneeId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+      return res.status(403).json({ message: 'Only the assigned employee can reject this task.' });
+    }
+
+    if (task.status !== 'pending') {
+      return res.status(400).json({ message: `Task cannot be rejected because it is already ${task.status}.` });
+    }
+
+    await task.update({ status: 'rejected', rejectionReason: reason });
+    return res.status(200).json({ message: 'Task rejected.', task });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/tasks/:id/complete
+const completeTask = async (req, res, next) => {
+  try {
+    const task = await Task.findByPk(req.params.id);
+    if (!task) return res.status(404).json({ message: 'Task not found.' });
+
+    if (task.assigneeId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+      return res.status(403).json({ message: 'Only the assigned employee can mark this task complete.' });
+    }
+
+    if (task.status !== 'in_progress') {
+      return res.status(400).json({ message: 'Task must be in progress before marking complete.' });
+    }
+
+    await task.update({ status: 'completed' });
+    return res.status(200).json({ message: 'Task marked completed.', task });
   } catch (error) {
     next(error);
   }
@@ -96,12 +195,12 @@ const updateTask = async (req, res, next) => {
     const task = await Task.findByPk(req.params.id);
     if (!task) return res.status(404).json({ message: 'Task not found.' });
 
-    if (req.user.role !== 'admin' && task.assigneeId !== req.user.id) {
-      return res.status(403).json({ message: 'Access denied.' });
+    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+      return res.status(403).json({ message: 'Employees cannot edit task details.' });
     }
 
-    const { title, description, status, dueDate, assigneeId } = req.body;
-    await task.update({ title, description, status, dueDate, assigneeId });
+    const { title, description, dueDate, assigneeId } = req.body;
+    await task.update({ title, description, dueDate, assigneeId });
 
     return res.status(200).json({ message: 'Task updated successfully.', task });
   } catch (error) {
@@ -115,8 +214,8 @@ const deleteTask = async (req, res, next) => {
     const task = await Task.findByPk(req.params.id);
     if (!task) return res.status(404).json({ message: 'Task not found.' });
 
-    if (req.user.role !== 'admin' && task.createdById !== req.user.id) {
-      return res.status(403).json({ message: 'Access denied.' });
+    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+      return res.status(403).json({ message: 'Employees cannot delete tasks.' });
     }
 
     await task.destroy();
@@ -165,4 +264,15 @@ const deleteTaskFile = async (req, res, next) => {
   }
 };
 
-module.exports = { getAllTasks, getTask, createTask, updateTask, deleteTask, uploadTaskFile, deleteTaskFile };
+module.exports = {
+  getAllTasks,
+  getTask,
+  createTask,
+  acceptTask,
+  rejectTask,
+  completeTask,
+  updateTask,
+  deleteTask,
+  uploadTaskFile,
+  deleteTaskFile,
+};

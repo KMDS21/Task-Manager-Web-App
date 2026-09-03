@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { fetchTaskById, updateTask, deleteTask, uploadTaskFile, deleteTaskFile } from '../api/tasks';
+import { fetchTaskById, deleteTask, acceptTask, rejectTask, completeTask, uploadTaskFile, deleteTaskFile } from '../api/tasks';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { ArrowLeft, Calendar, User as UserIcon, Trash2, Clock, Upload, FileText, Download } from 'lucide-react';
+import { ArrowLeft, Calendar, User as UserIcon, Trash2, Clock, Upload, FileText, Download, CheckCircle, XCircle, AlertTriangle, Building2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function TaskDetailPage() {
@@ -14,8 +14,14 @@ export default function TaskDetailPage() {
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // File Upload State
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+
+  // Rejection Modal State
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     loadTask();
@@ -33,12 +39,43 @@ export default function TaskDetailPage() {
     }
   };
 
-  const handleStatusChange = async (newStatus) => {
+  const handleAccept = async () => {
+    setActionLoading(true);
     try {
-      await updateTask(id, { status: newStatus });
-      setTask((prev) => ({ ...prev, status: newStatus }));
+      await acceptTask(id);
+      await loadTask();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update status');
+      alert(err.response?.data?.message || 'Failed to accept task');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRejectSubmit = async (e) => {
+    e.preventDefault();
+    if (!rejectionReason.trim()) return alert('Please provide a reason for rejecting the task');
+
+    setActionLoading(true);
+    try {
+      await rejectTask(id, rejectionReason);
+      setShowRejectModal(false);
+      await loadTask();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to reject task');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleComplete = async () => {
+    setActionLoading(true);
+    try {
+      await completeTask(id);
+      await loadTask();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to complete task');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -98,6 +135,8 @@ export default function TaskDetailPage() {
     );
   }
 
+  const isAssignedEmployee = task.assigneeId === user?.id;
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <Link to="/tasks" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6">
@@ -109,20 +148,33 @@ export default function TaskDetailPage() {
           <div>
             <div className="flex items-center gap-3 mb-2">
               <Badge variant={task.status}>{task.status.replace('_', ' ').toUpperCase()}</Badge>
+              {task.assignee?.department && (
+                <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                  <Building2 className="h-3 w-3" /> {task.assignee.department.name}
+                </Badge>
+              )}
             </div>
             <CardTitle className="text-2xl">{task.title}</CardTitle>
           </div>
 
+          {/* Action Buttons for Employee / Admin */}
           <div className="flex items-center gap-2">
-            <select
-              value={task.status}
-              onChange={(e) => handleStatusChange(e.target.value)}
-              className="h-9 rounded-md border border-input bg-background px-3 text-xs font-semibold focus-visible:outline-none"
-            >
-              <option value="pending">Pending</option>
-              <option value="in_progress">In Progress</option>
-              <option value="completed">Completed</option>
-            </select>
+            {isAssignedEmployee && task.status === 'pending' && (
+              <>
+                <Button size="sm" onClick={handleAccept} disabled={actionLoading} className="bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5">
+                  <CheckCircle className="h-4 w-4" /> Accept Task
+                </Button>
+                <Button size="sm" variant="destructive" onClick={() => setShowRejectModal(true)} disabled={actionLoading} className="flex items-center gap-1.5">
+                  <XCircle className="h-4 w-4" /> Reject Task
+                </Button>
+              </>
+            )}
+
+            {isAssignedEmployee && task.status === 'in_progress' && (
+              <Button size="sm" onClick={handleComplete} disabled={actionLoading} className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1.5">
+                <CheckCircle className="h-4 w-4" /> Mark Complete
+              </Button>
+            )}
 
             {isAdmin && (
               <Button variant="destructive" size="sm" onClick={handleDelete}>
@@ -133,6 +185,19 @@ export default function TaskDetailPage() {
         </CardHeader>
 
         <CardContent className="space-y-6 pt-6">
+          {/* Rejection Alert Box */}
+          {task.status === 'rejected' && (
+            <div className="p-4 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-400 space-y-1">
+              <div className="flex items-center gap-2 font-semibold text-sm">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <span>Task Rejected by Employee</span>
+              </div>
+              <p className="text-xs leading-relaxed italic pl-6">
+                "{task.rejectionReason || 'No rejection reason specified.'}"
+              </p>
+            </div>
+          )}
+
           <div>
             <h4 className="text-xs uppercase text-muted-foreground font-semibold tracking-wider mb-2">Description</h4>
             <p className="text-sm leading-relaxed text-foreground whitespace-pre-line">
@@ -168,6 +233,7 @@ export default function TaskDetailPage() {
         </CardContent>
       </Card>
 
+      {/* File Attachments Card */}
       <Card className="border-border/50 shadow-sm">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
@@ -224,6 +290,40 @@ export default function TaskDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Reject Reason Modal */}
+      {showRejectModal && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="w-full max-w-md border-border/80 shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2 text-rose-600">
+                <XCircle className="h-5 w-5" /> Reject Task
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleRejectSubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Rejection Reason</label>
+                  <textarea
+                    rows={4}
+                    placeholder="Please explain to the admin why you are rejecting this task..."
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                    className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none"
+                    required
+                  />
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button type="button" variant="outline" onClick={() => setShowRejectModal(false)}>Cancel</Button>
+                  <Button type="submit" variant="destructive" disabled={actionLoading}>
+                    {actionLoading ? 'Submitting...' : 'Submit Rejection'}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

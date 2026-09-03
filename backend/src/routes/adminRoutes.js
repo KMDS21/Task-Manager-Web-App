@@ -5,11 +5,12 @@ const { authenticate } = require('../middleware/auth');
 const { requireRole } = require('../middleware/role');
 
 router.use(authenticate);
-router.use(requireRole('admin'));
+router.use(requireRole('admin', 'super_admin'));
 
 router.get('/stats', adminController.getStats);
 router.get('/users', adminController.getUsers);
-router.put('/users/:id/role', adminController.updateUserRole);
-router.delete('/users/:id', adminController.deleteUser);
+router.put('/users/:id/role', requireRole('super_admin'), adminController.updateUserRole);
+router.put('/users/:id/department', adminController.updateUserDepartment);
+router.delete('/users/:id', requireRole('super_admin'), adminController.deleteUser);
 
 module.exports = router;

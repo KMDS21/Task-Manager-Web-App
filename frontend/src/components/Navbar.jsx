@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { LayoutDashboard, CheckSquare, Shield, LogOut, CheckCircle2 } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, Shield, Building2, LogOut, CheckCircle2 } from 'lucide-react';
 
 export function Navbar() {
   const { user, logout, isAdmin } = useAuth();
@@ -52,17 +52,30 @@ export function Navbar() {
               Tasks
             </Link>
             {isAdmin && (
-              <Link
-                to="/admin"
-                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  isActive('/admin')
-                    ? 'bg-accent text-accent-foreground'
-                    : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-                }`}
-              >
-                <Shield className="h-4 w-4 text-purple-500" />
-                Admin Panel
-              </Link>
+              <>
+                <Link
+                  to="/departments"
+                  className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    isActive('/departments')
+                      ? 'bg-accent text-accent-foreground'
+                      : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                  }`}
+                >
+                  <Building2 className="h-4 w-4 text-blue-500" />
+                  Departments
+                </Link>
+                <Link
+                  to="/admin"
+                  className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    isActive('/admin')
+                      ? 'bg-accent text-accent-foreground'
+                      : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                  }`}
+                >
+                  <Shield className="h-4 w-4 text-purple-500" />
+                  Admin Panel
+                </Link>
+              </>
             )}
           </nav>
         </div>
@@ -70,8 +83,8 @@ export function Navbar() {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium hidden sm:inline-block">{user?.name}</span>
-            <Badge variant={user?.role === 'admin' ? 'admin' : 'user'}>
-              {user?.role?.toUpperCase()}
+            <Badge variant={user?.role}>
+              {user?.role?.replace('_', ' ')?.toUpperCase()}
             </Badge>
           </div>
 
