@@ -18,12 +18,16 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
           script: |
-            # Ensure deployment directory exists
+            # Ensure PATH includes Node.js and PM2 binaries
+            export PATH=$PATH:/usr/bin:/usr/local/bin:~/.nvm/versions/node/$(ls ~/.nvm/versions/node 2>/dev/null | tail -n 1)/bin
+
+            # 1. Ensure deployment directory exists
             mkdir -p ~/app
             cd ~/app
 
-            # Clone or fetch latest code from repository
+            # 2. Clone or fetch latest code from repository
             if [ ! -d ".git" ]; then
               git clone https://github.com/KMDS21/Task-Manager-Web-App.git .
             else
@@ -31,24 +35,11 @@ jobs:
               git reset --hard origin/${{ github.ref_name }}
             fi
 
-            # Install backend production dependencies
+            # 3. Install backend production dependencies
             cd backend
             npm ci --production
 
-            # Create production .env if it does not exist
-            if [ ! -f ".env" ]; then
-              echo "PORT=5000" > .env
-              echo "NODE_ENV=production" >> .env
-              echo "DATABASE_URL=postgresql://neondb_owner:npg_dJe4XGsQpRf3@ep-spring-cherry-b3iwm3zi-pooler.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require" >> .env
-              echo "JWT_SECRET=your_super_secret_key_change_this_in_production" >> .env
-              echo "JWT_EXPIRES_IN=7d" >> .env
-            fi
-
-            # Ensure PM2 is installed globally
-            if ! command -v pm2 &> /dev/null; then
-              sudo npm install -g pm2
-            fi
-
-            # Restart or start Node.js backend using PM2
+            # 4. Restart or start Node.js backend using PM2
             pm2 restart task-manager-backend || pm2 start server.js --name "task-manager-backend"
             pm2 save
+            echo "🚀 Deployment to AWS EC2 completed successfully!"
