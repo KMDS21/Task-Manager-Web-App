@@ -45,6 +45,9 @@ const startServer = async () => {
   });
 };
 
-startServer();
+// Only listen if not imported by test suite
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+}
 
 module.exports = app;
