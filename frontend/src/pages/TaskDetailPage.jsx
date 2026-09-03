@@ -4,8 +4,9 @@ import { fetchTaskById, deleteTask, acceptTask, rejectTask, completeTask, upload
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { ArrowLeft, Calendar, User as UserIcon, Trash2, Clock, Upload, FileText, Download, CheckCircle, XCircle, AlertTriangle, Building2 } from 'lucide-react';
+import { ArrowLeft, Calendar, User as UserIcon, Trash2, Clock, Upload, FileText, Download, CheckCircle, XCircle, AlertTriangle, Shield } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { formatDateDDMMYYYY } from '../utils/date';
 
 export default function TaskDetailPage() {
   const { id } = useParams();
@@ -149,8 +150,8 @@ export default function TaskDetailPage() {
             <div className="flex items-center gap-3 mb-2">
               <Badge variant={task.status}>{task.status.replace('_', ' ').toUpperCase()}</Badge>
               {task.assignee?.department && (
-                <Badge variant="outline" className="flex items-center gap-1 text-xs">
-                  <Building2 className="h-3 w-3" /> {task.assignee.department.name}
+                <Badge variant="outline" className="text-xs">
+                  {task.assignee.department.name}
                 </Badge>
               )}
             </div>
@@ -209,7 +210,7 @@ export default function TaskDetailPage() {
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-primary" />
               <span className="text-muted-foreground">Due Date:</span>
-              <span className="font-medium">{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'None set'}</span>
+              <span className="font-medium">{task.dueDate ? formatDateDDMMYYYY(task.dueDate) : 'None set'}</span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -219,15 +220,17 @@ export default function TaskDetailPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <UserIcon className="h-4 w-4 text-primary" />
+              <Shield className="h-4 w-4 text-purple-500" />
               <span className="text-muted-foreground">Created By:</span>
-              <span className="font-medium">{task.creator?.name || 'Unknown'}</span>
+              <span className="font-medium">
+                {task.creator?.name || 'Admin'} {task.creator?.department ? `(${task.creator.department.name})` : ''}
+              </span>
             </div>
 
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-primary" />
               <span className="text-muted-foreground">Created On:</span>
-              <span className="font-medium">{new Date(task.createdAt).toLocaleDateString()}</span>
+              <span className="font-medium">{formatDateDDMMYYYY(task.createdAt)}</span>
             </div>
           </div>
         </CardContent>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
-import { Navbar } from './components/Navbar';
+import { Sidebar } from './components/Sidebar';
 
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -35,21 +35,28 @@ export default function App() {
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-background flex flex-col font-sans">
-      {user && <Navbar />}
-      <main className="flex-1">
+    <div className="min-h-screen bg-background font-sans">
+      {user ? (
+        <div className="flex flex-col md:flex-row min-h-screen">
+          <Sidebar />
+          <main className="flex-1 min-w-0 bg-background overflow-x-hidden">
+            <Routes>
+              <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+              <Route path="/tasks" element={<ProtectedRoute><TasksPage /></ProtectedRoute>} />
+              <Route path="/tasks/:id" element={<ProtectedRoute><TaskDetailPage /></ProtectedRoute>} />
+              <Route path="/departments" element={<ProtectedRoute><DepartmentsPage /></ProtectedRoute>} />
+              <Route path="/admin" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </main>
+        </div>
+      ) : (
         <Routes>
-          <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
-          <Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <RegisterPage />} />
-
-          <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-          <Route path="/tasks" element={<ProtectedRoute><TasksPage /></ProtectedRoute>} />
-          <Route path="/tasks/:id" element={<ProtectedRoute><TaskDetailPage /></ProtectedRoute>} />
-          <Route path="/departments" element={<AdminRoute><DepartmentsPage /></AdminRoute>} />
-          <Route path="/admin" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
-      </main>
+      )}
     </div>
   );
 }

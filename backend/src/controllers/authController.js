@@ -1,4 +1,4 @@
-const User = require('../models/User');
+const { User, Department } = require('../models/index');
 const { generateToken } = require('../utils/jwt');
 
 // POST /api/auth/register
@@ -21,7 +21,14 @@ const register = async (req, res, next) => {
     return res.status(201).json({
       message: 'User registered successfully.',
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        departmentId: user.departmentId || null,
+        department: null,
+      },
     });
   } catch (error) {
     next(error);
@@ -37,7 +44,10 @@ const login = async (req, res, next) => {
       return res.status(400).json({ message: 'Email and password are required.' });
     }
 
-    const user = await User.scope('withPassword').findOne({ where: { email } });
+    const user = await User.scope('withPassword').findOne({
+      where: { email },
+      include: [{ model: Department, as: 'department', attributes: ['id', 'name'] }],
+    });
     if (!user) {
       return res.status(401).json({ message: 'Invalid email or password.' });
     }
@@ -52,7 +62,14 @@ const login = async (req, res, next) => {
     return res.status(200).json({
       message: 'Login successful.',
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        departmentId: user.departmentId || null,
+        department: user.department ? { id: user.department.id, name: user.department.name } : null,
+      },
     });
   } catch (error) {
     next(error);
@@ -67,9 +84,10 @@ const getMe = async (req, res) => {
       name: req.user.name,
       email: req.user.email,
       role: req.user.role,
+      departmentId: req.user.departmentId || null,
+      department: req.user.department ? { id: req.user.department.id, name: req.user.department.name } : null,
     },
   });
 };
 
 module.exports = { register, login, getMe };
-

@@ -9,6 +9,7 @@ import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Plus, Search, Filter, Trash2, Calendar, User as UserIcon, Shield, Building2, CheckSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { formatDateDDMMYYYY } from '../utils/date';
 
 export default function TasksPage() {
   const { user, isAdmin, isSuperAdmin } = useAuth();
@@ -143,13 +144,13 @@ export default function TasksPage() {
   const userAdminDeptName = departments.find((d) => d.id === user?.departmentId)?.name || 'Admin';
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+    <div className="w-full px-4 sm:px-8 py-6 space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
             {isAdmin ? 'Tasks Management' : 'My Assigned Tasks'}
           </h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-xs sm:text-sm">
             {isAdmin
               ? 'View tasks assigned to you or manage department task assignments'
               : 'View, accept, and complete your assigned tasks'}
@@ -157,7 +158,7 @@ export default function TasksPage() {
         </div>
 
         {isAdmin && (
-          <Button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2">
+          <Button onClick={() => setIsModalOpen(true)} className="w-full sm:w-auto flex items-center justify-center gap-2">
             <Plus className="h-4 w-4" /> Assign New Task
           </Button>
         )}
@@ -165,14 +166,14 @@ export default function TasksPage() {
 
       {/* Admin Task Category Switcher Tabs */}
       {isAdmin && (
-        <div className="flex flex-wrap items-center gap-2 mb-6 border-b pb-3">
+        <div className="flex flex-wrap items-center gap-2 border-b pb-3">
           <Button
             variant={adminViewTab === 'my_assigned' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setAdminViewTab('my_assigned')}
-            className="flex items-center gap-2"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-xs"
           >
-            <UserIcon className="h-4 w-4 text-emerald-500" />
+            <UserIcon className="h-3.5 w-3.5 text-emerald-500" />
             My Assigned Tasks
             <Badge variant="secondary" className="ml-1 px-1.5 py-0.2 text-[10px]">
               {myAssignedCount}
@@ -183,9 +184,9 @@ export default function TasksPage() {
             variant={adminViewTab === 'department' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setAdminViewTab('department')}
-            className="flex items-center gap-2"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-xs"
           >
-            <Building2 className="h-4 w-4 text-blue-500" />
+            <Building2 className="h-3.5 w-3.5 text-blue-500" />
             My Department Tasks
           </Button>
 
@@ -193,17 +194,17 @@ export default function TasksPage() {
             variant={adminViewTab === 'all' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setAdminViewTab('all')}
-            className="flex items-center gap-2"
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 text-xs"
           >
-            <Shield className="h-4 w-4 text-purple-500" />
+            <Shield className="h-3.5 w-3.5 text-purple-500" />
             All Department Overview
           </Button>
         </div>
       )}
 
       {/* Filter and Search Bar */}
-      <Card className="mb-8 border-border/50">
-        <CardContent className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+      <Card className="border-border/50 shadow-sm">
+        <CardContent className="p-3 sm:p-4 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
           <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 w-full md:w-auto flex-1 max-w-md">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -211,21 +212,21 @@ export default function TasksPage() {
                 placeholder="Search tasks title or description..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
+                className="pl-9 text-xs sm:text-sm"
               />
             </div>
-            <Button type="submit" variant="secondary">Search</Button>
+            <Button type="submit" variant="secondary" size="sm" className="shrink-0">Search</Button>
           </form>
 
-          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
             {/* Department Filter for Admins (visible on 'all' tab) */}
             {isAdmin && adminViewTab === 'all' && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-medium text-muted-foreground shrink-0">Department:</span>
+              <div className="flex items-center gap-1.5 flex-1 sm:flex-none">
+                <span className="text-xs font-medium text-muted-foreground shrink-0">Dept:</span>
                 <select
                   value={departmentFilter}
                   onChange={(e) => setDepartmentFilter(e.target.value)}
-                  className="h-9 rounded-md border border-input bg-background px-3 text-xs font-semibold focus-visible:outline-none"
+                  className="h-9 w-full sm:w-auto rounded-md border border-input bg-background px-2.5 text-xs font-semibold focus-visible:outline-none"
                 >
                   <option value="all">All Departments</option>
                   {departments.map((d) => (
@@ -238,7 +239,7 @@ export default function TasksPage() {
             )}
 
             {/* Status Filter */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-1 sm:flex-none">
               <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
               <select
                 value={statusFilter}
@@ -246,7 +247,7 @@ export default function TasksPage() {
                   setStatusFilter(e.target.value);
                   setPage(1);
                 }}
-                className="h-9 rounded-md border border-input bg-background px-3 text-xs font-semibold focus-visible:outline-none"
+                className="h-9 w-full sm:w-auto rounded-md border border-input bg-background px-2.5 text-xs font-semibold focus-visible:outline-none"
               >
                 <option value="">All Statuses</option>
                 <option value="pending">Pending</option>
@@ -265,13 +266,13 @@ export default function TasksPage() {
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
         </div>
       ) : displayedTasks.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {displayedTasks.map((task) => (
             <Card key={task.id} className="flex flex-col justify-between hover:shadow-md transition-shadow border-border/50">
-              <CardHeader>
+              <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant={task.status}>{task.status.replace('_', ' ').toUpperCase()}</Badge>
+                    <Badge variant={task.status} className="text-[10px]">{task.status.replace('_', ' ').toUpperCase()}</Badge>
                     {task.assignee?.department && (
                       <Badge variant="outline" className="text-[10px]">
                         {task.assignee.department.name}
@@ -284,47 +285,47 @@ export default function TasksPage() {
                     </Button>
                   )}
                 </div>
-                <CardTitle className="line-clamp-1">
+                <CardTitle className="line-clamp-1 text-base sm:text-lg">
                   <Link to={`/tasks/${task.id}`} className="hover:underline">{task.title}</Link>
                 </CardTitle>
               </CardHeader>
 
-              <CardContent className="flex-1">
-                <p className="text-sm text-muted-foreground line-clamp-3 mb-4">{task.description || 'No description provided.'}</p>
+              <CardContent className="px-4 sm:px-6 flex-1">
+                <p className="text-xs sm:text-sm text-muted-foreground line-clamp-3 mb-4">{task.description || 'No description provided.'}</p>
 
                 <div className="space-y-2 text-xs text-muted-foreground border-t pt-3">
                   {task.creator && (
                     <div className="flex items-center gap-1.5">
-                      <Shield className="h-3.5 w-3.5 text-purple-500" />
-                      <span>Created by {task.creator.name} ({task.creator.department?.name || 'Admin'})</span>
+                      <Shield className="h-3.5 w-3.5 text-purple-500 shrink-0" />
+                      <span className="truncate">Created by {task.creator.name} ({task.creator.department?.name || 'Admin'})</span>
                     </div>
                   )}
                   {task.dueDate && (
                     <div className="flex items-center gap-1.5">
-                      <Calendar className="h-3.5 w-3.5 text-primary" />
-                      <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
+                      <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
+                      <span>Due: {formatDateDDMMYYYY(task.dueDate)}</span>
                     </div>
                   )}
                   {task.assignee && (
                     <div className="flex items-center gap-1.5">
-                      <UserIcon className="h-3.5 w-3.5 text-primary" />
-                      <span>Assigned to: {task.assignee.name}</span>
+                      <UserIcon className="h-3.5 w-3.5 text-primary shrink-0" />
+                      <span className="truncate">Assigned to: {task.assignee.name}</span>
                     </div>
                   )}
                 </div>
               </CardContent>
 
-              <CardFooter className="border-t pt-3 flex items-center justify-end">
+              <CardFooter className="border-t p-3 sm:p-4 flex items-center justify-end">
                 <Link to={`/tasks/${task.id}`}>
-                  <Button variant="default" size="sm">View Details & Response</Button>
+                  <Button variant="default" size="sm" className="text-xs">View Details & Response</Button>
                 </Link>
               </CardFooter>
             </Card>
           ))}
         </div>
       ) : (
-        <Card className="p-12 text-center border-dashed mb-8">
-          <p className="text-muted-foreground">
+        <Card className="p-8 sm:p-12 text-center border-dashed">
+          <p className="text-xs sm:text-sm text-muted-foreground">
             {isAdmin
               ? adminViewTab === 'my_assigned'
                 ? 'You have no tasks assigned directly to you.'
@@ -336,10 +337,10 @@ export default function TasksPage() {
 
       {/* Assign Task Modal */}
       {isModalOpen && isAdmin && (
-        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg shadow-xl border-border">
-            <CardHeader>
-              <CardTitle>Assign New Task</CardTitle>
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <Card className="w-full max-w-lg shadow-xl border-border my-8">
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="text-lg sm:text-xl">Assign New Task</CardTitle>
               {/* Creator Admin & Department Information */}
               <div className="mt-2 p-3 rounded-lg bg-muted/60 border border-border text-xs space-y-1">
                 <div className="flex items-center justify-between">
@@ -357,7 +358,7 @@ export default function TasksPage() {
               </div>
             </CardHeader>
             <form onSubmit={handleCreateTask}>
-              <CardContent className="space-y-4">
+              <CardContent className="px-4 sm:px-6 space-y-4">
                 <div className="space-y-1">
                   <label className="text-xs font-medium">Task Title</label>
                   <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Sales Report / Software Bug Fix" required />
@@ -433,7 +434,7 @@ export default function TasksPage() {
                   </select>
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-end gap-2 border-t pt-4">
+              <CardFooter className="flex justify-end gap-2 border-t p-4 sm:p-6">
                 <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
                 <Button type="submit" disabled={createLoading}>{createLoading ? 'Assigning...' : 'Assign Task'}</Button>
               </CardFooter>
