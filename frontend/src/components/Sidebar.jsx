@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { LayoutDashboard, CheckSquare, Shield, Building2, LogOut, CheckCircle2, Menu, X, User } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, Shield, Building2, LogOut, CheckCircle2, Menu, X } from 'lucide-react';
 
 export function Sidebar() {
   const { user, logout, isAdmin } = useAuth();
@@ -23,15 +23,21 @@ export function Sidebar() {
 
   const isActive = (path) => location.pathname === path;
 
+  // Base navigation items for Employees
   const navItems = [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { label: 'Tasks', path: '/tasks', icon: CheckSquare },
-    { label: 'Departments', path: '/departments', icon: Building2, color: 'text-blue-500' },
   ];
 
+  // Departments and Admin Panel only shown for Admins / Super Admin
   if (isAdmin) {
+    navItems.push({ label: 'Departments', path: '/departments', icon: Building2, color: 'text-blue-500' });
     navItems.push({ label: 'Admin Panel', path: '/admin', icon: Shield, color: 'text-purple-500' });
   }
+
+  const deptDisplayName = user?.role === 'super_admin'
+    ? 'All Departments'
+    : user?.department?.name || 'Unassigned Dept';
 
   return (
     <>
@@ -104,16 +110,24 @@ export function Sidebar() {
           </nav>
         </div>
 
+        {/* Mobile User Profile Section */}
         <div className="border-t pt-4 space-y-3">
-          <div className="flex items-center gap-3 px-2">
-            <div className="h-9 w-9 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm shrink-0">
-              {user?.name?.charAt(0).toUpperCase()}
+          <div className="p-2.5 rounded-xl bg-muted/40 border border-border/50 space-y-1.5">
+            <div className="flex items-center gap-2.5">
+              <div className="h-9 w-9 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm shrink-0 border border-primary/20">
+                {user?.name?.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold truncate leading-tight">{user?.name}</p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <Badge variant={user?.role} className="text-[9px] px-1.5 py-0">
+                    {user?.role?.replace('_', ' ')?.toUpperCase()}
+                  </Badge>
+                </div>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold truncate">{user?.name}</p>
-              <Badge variant={user?.role} className="text-[9px] px-1.5 py-0">
-                {user?.role?.replace('_', ' ')?.toUpperCase()}
-              </Badge>
+            <div className="text-xs text-muted-foreground pt-1 border-t border-border/40">
+              <span className="truncate font-medium">{deptDisplayName}</span>
             </div>
           </div>
 
@@ -165,17 +179,24 @@ export function Sidebar() {
           </nav>
         </div>
 
-        {/* User Profile & Logout at Bottom */}
+        {/* User Profile & Department Info at Bottom */}
         <div className="border-t pt-4 space-y-3">
-          <div className="flex items-center gap-3 px-2 py-1 bg-muted/40 rounded-lg border border-border/50">
-            <div className="h-9 w-9 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm shrink-0 border border-primary/20">
-              {user?.name?.charAt(0).toUpperCase()}
+          <div className="p-3 rounded-xl bg-muted/40 border border-border/50 space-y-2">
+            <div className="flex items-center gap-2.5">
+              <div className="h-9 w-9 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm shrink-0 border border-primary/20 shadow-sm">
+                {user?.name?.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold truncate leading-tight text-foreground">{user?.name}</p>
+                <Badge variant={user?.role} className="text-[9px] px-1.5 py-0 mt-0.5">
+                  {user?.role?.replace('_', ' ')?.toUpperCase()}
+                </Badge>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold truncate leading-snug">{user?.name}</p>
-              <Badge variant={user?.role} className="text-[9px] px-1.5 py-0 mt-0.5">
-                {user?.role?.replace('_', ' ')?.toUpperCase()}
-              </Badge>
+
+            {/* User Enrolled Department details */}
+            <div className="text-xs text-muted-foreground pt-2 border-t border-border/50">
+              <span className="truncate font-medium text-foreground/80">{deptDisplayName}</span>
             </div>
           </div>
 
@@ -192,4 +213,3 @@ export function Sidebar() {
     </>
   );
 }
-

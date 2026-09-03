@@ -1,5 +1,5 @@
 const { verifyToken } = require('../utils/jwt');
-const User = require('../models/User');
+const { User, Department } = require('../models/index');
 
 const authenticate = async (req, res, next) => {
   try {
@@ -11,7 +11,9 @@ const authenticate = async (req, res, next) => {
     const token = authHeader.split(' ')[1];
     const decoded = verifyToken(token);
 
-    const user = await User.findByPk(decoded.userId);
+    const user = await User.findByPk(decoded.userId, {
+      include: [{ model: Department, as: 'department', attributes: ['id', 'name'] }],
+    });
     if (!user) {
       return res.status(401).json({ message: 'User no longer exists.' });
     }
@@ -24,4 +26,3 @@ const authenticate = async (req, res, next) => {
 };
 
 module.exports = { authenticate };
-

@@ -5,7 +5,7 @@ import { fetchDepartments } from '../api/departments';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
-import { ListTodo, Clock, CheckCircle2, AlertCircle, Plus, ArrowRight, XCircle, UserCheck, TrendingUp, Building2 } from 'lucide-react';
+import { ListTodo, Clock, CheckCircle2, AlertCircle, Plus, ArrowRight, XCircle, UserCheck, TrendingUp } from 'lucide-react';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -213,7 +213,7 @@ export default function DashboardPage() {
     );
   }
 
-  const userDeptName = user?.department?.name || 'My Department';
+  const userDeptName = user?.department?.name || 'Unassigned Department';
 
   return (
     <div className="w-full px-4 sm:px-8 py-6 space-y-8">
@@ -254,13 +254,12 @@ export default function DashboardPage() {
                 ))}
               </select>
             </div>
-          ) : isAdmin ? (
-            /* READ-ONLY DEPARTMENT BADGE FOR REGULAR DEPARTMENT ADMINS */
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-xs font-semibold text-primary shrink-0">
-              <Building2 className="h-4 w-4" />
-              <span>{userDeptName}</span>
+          ) : (
+            /* ENROLLED DEPARTMENT BADGE FOR ADMIN AND EMPLOYEE */
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-xs font-semibold text-blue-600 dark:text-blue-400 shrink-0">
+              <span>Department: {userDeptName}</span>
             </div>
-          ) : null}
+          )}
 
           {isAdmin ? (
             <Link to="/tasks">
