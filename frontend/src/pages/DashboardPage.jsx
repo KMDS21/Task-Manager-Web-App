@@ -5,7 +5,7 @@ import { fetchDepartments } from '../api/departments';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
-import { ListTodo, Clock, CheckCircle2, AlertCircle, Plus, ArrowRight, XCircle, UserCheck, TrendingUp } from 'lucide-react';
+import { ListTodo, Clock, CheckCircle2, AlertCircle, Plus, ArrowRight, XCircle, UserCheck, TrendingUp, Building2 } from 'lucide-react';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -50,14 +50,10 @@ export default function DashboardPage() {
       const tasksRes = await fetchTasks({ limit: 100 });
       setTasks(tasksRes.data.tasks || []);
 
-      if (isAdmin) {
+      if (isSuperAdmin) {
         const deptsRes = await fetchDepartments();
         const depts = deptsRes.data.departments || [];
         setDepartments(depts);
-        // Default Department Admin to their assigned department
-        if (!isSuperAdmin && user?.departmentId) {
-          setSelectedDeptId(user.departmentId);
-        }
       }
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
@@ -66,12 +62,21 @@ export default function DashboardPage() {
     }
   };
 
-  // Filter tasks based on selected department (for admins)
-  const filteredTasks = isAdmin
+  // Strict Scoping of Dashboard Tasks:
+  // - Super Admin: Can select any department or view all
+  // - Department Admin: Strictly views tasks belonging to THEIR assigned department or created by them
+  // - Employee: Strictly views tasks assigned to them
+  const filteredTasks = isSuperAdmin
     ? (selectedDeptId === 'all'
         ? tasks
         : tasks.filter((t) => t.assignee?.departmentId === selectedDeptId))
-    : tasks; // Employees only get their own tasks from backend API
+    : isAdmin
+    ? tasks.filter(
+        (t) =>
+          t.assignee?.departmentId === user?.departmentId ||
+          t.createdById === user?.id
+      )
+    : tasks;
 
   // Filter personal tasks assigned specifically to the logged-in user
   const myPersonalTasks = tasks.filter((t) => t.assigneeId === user?.id);
@@ -172,24 +177,32 @@ export default function DashboardPage() {
     );
   }
 
+  const userDeptName = user?.department?.name || 'My Department';
+
   return (
     <div className="w-full px-4 sm:px-8 py-6 space-y-8">
       {/* Top Header & Actions Bar - Stacks vertically on mobile */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            {isAdmin ? 'Management Dashboard' : `Welcome, ${user?.name || 'Employee'}`}
+            {isSuperAdmin
+              ? 'Super Admin Dashboard'
+              : isAdmin
+              ? `${userDeptName} Dashboard`
+              : `Welcome, ${user?.name || 'Employee'}`}
           </h1>
           <p className="text-muted-foreground text-xs sm:text-sm">
-            {isAdmin
-              ? 'Overview of department task metrics and workload progress'
+            {isSuperAdmin
+              ? 'System-wide overview across all organizational departments'
+              : isAdmin
+              ? `Management metrics and workload progress for ${userDeptName}`
               : 'Your personal task dashboard — track and respond to your assigned work'}
           </p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
-          {/* Department Selector for Admins */}
-          {isAdmin && (
+          {/* Department Selector FOR SUPER ADMIN ONLY */}
+          {isSuperAdmin ? (
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-muted-foreground shrink-0">Department:</span>
               <select
@@ -200,12 +213,18 @@ export default function DashboardPage() {
                 <option value="all">All Departments</option>
                 {departments.map((d) => (
                   <option key={d.id} value={d.id}>
-                    {d.name} {user?.departmentId === d.id ? '(My Department)' : ''}
+                    {d.name}
                   </option>
                 ))}
               </select>
             </div>
-          )}
+          ) : isAdmin ? (
+            /* READ-ONLY DEPARTMENT BADGE FOR REGULAR DEPARTMENT ADMINS */
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-xs font-semibold text-primary shrink-0">
+              <Building2 className="h-4 w-4" />
+              <span>{userDeptName}</span>
+            </div>
+          ) : null}
 
           {isAdmin ? (
             <Link to="/tasks">
@@ -234,7 +253,9 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="p-4 pt-0">
             <div className="text-2xl sm:text-3xl font-bold">{totalCount}</div>
-            <p className="text-[11px] text-muted-foreground line-clamp-1">{isAdmin ? 'All department tasks' : 'Assigned to you'}</p>
+            <p className="text-[11px] text-muted-foreground line-clamp-1">
+              {isSuperAdmin ? 'All system tasks' : isAdmin ? `${userDeptName} tasks` : 'Assigned to you'}
+            </p>
           </CardContent>
         </Card>
 
