@@ -5,18 +5,40 @@ import { fetchDepartments } from '../api/departments';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
-import { ListTodo, Clock, CheckCircle2, AlertCircle, Plus, ArrowRight, XCircle, UserCheck } from 'lucide-react';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
-import { Doughnut } from 'react-chartjs-2';
+import { ListTodo, Clock, CheckCircle2, AlertCircle, Plus, ArrowRight, XCircle, UserCheck, TrendingUp } from 'lucide-react';
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Filler,
+} from 'chart.js';
+import { Doughnut, Line } from 'react-chartjs-2';
 import { useAuth } from '../context/AuthContext';
 
-ChartJS.register(ArcElement, Tooltip, Legend);
+ChartJS.register(
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Filler
+);
 
 export default function DashboardPage() {
   const { isAdmin, isSuperAdmin, user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [selectedDeptId, setSelectedDeptId] = useState('all');
+  const [lineTimeframe, setLineTimeframe] = useState('7d'); // '7d' | '30d'
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -60,7 +82,8 @@ export default function DashboardPage() {
   const rejectedCount = filteredTasks.filter((t) => t.status === 'rejected').length;
   const totalCount = filteredTasks.length;
 
-  const chartData = {
+  // Donut Status Chart Data
+  const donutChartData = {
     labels: ['Pending', 'In Progress', 'Completed', 'Rejected'],
     datasets: [
       {
@@ -70,6 +93,75 @@ export default function DashboardPage() {
         borderWidth: 1,
       },
     ],
+  };
+
+  // Generate timeframe date range array for Line Chart (1 Week / 1 Month)
+  const timeframeDays = lineTimeframe === '30d' ? 30 : 7;
+  const timeframeDates = Array.from({ length: timeframeDays }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (timeframeDays - 1 - i));
+    return d;
+  });
+
+  const lineChartLabels = timeframeDates.map((d) =>
+    d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  );
+
+  const lineChartDataValues = timeframeDates.map((d) => {
+    const dateStr = d.toISOString().split('T')[0];
+    return filteredTasks.filter((t) => {
+      if (t.status !== 'completed') return false;
+      const updatedDate = new Date(t.updatedAt).toISOString().split('T')[0];
+      return updatedDate === dateStr;
+    }).length;
+  });
+
+  const lineChartData = {
+    labels: lineChartLabels,
+    datasets: [
+      {
+        label: 'Tasks Completed',
+        data: lineChartDataValues,
+        borderColor: 'rgba(16, 185, 129, 1)',
+        backgroundColor: 'rgba(16, 185, 129, 0.12)',
+        fill: true,
+        tension: 0.35,
+        pointBackgroundColor: 'rgba(16, 185, 129, 1)',
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 2,
+        pointRadius: lineTimeframe === '30d' ? 2 : 4,
+        pointHoverRadius: 6,
+      },
+    ],
+  };
+
+  const lineChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        mode: 'index',
+        intersect: false,
+        callbacks: {
+          label: (context) => `${context.parsed.y} task${context.parsed.y !== 1 ? 's' : ''} completed`,
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { stepSize: 1, precision: 0 },
+        grid: { color: 'rgba(150, 150, 150, 0.1)' },
+      },
+      x: {
+        grid: { display: false },
+        ticks: {
+          maxTicksLimit: lineTimeframe === '30d' ? 8 : 7,
+          font: { size: 10 },
+        },
+      },
+    },
   };
 
   if (loading) {
@@ -191,16 +283,17 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Main Charts & Overview Grid: Full screen width */}
+      {/* Middle Grid: Left (Donut Status Breakdown), Right (Line Chart: Tasks Completed Over Time with 1 Week / 1 Month Selector) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left: Donut Chart */}
         <Card className="lg:col-span-1 border-border/60 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base sm:text-lg">{isAdmin ? 'Department Breakdown' : 'My Status Breakdown'}</CardTitle>
           </CardHeader>
-          <CardContent className="flex items-center justify-center p-6">
+          <CardContent className="flex items-center justify-center p-4 sm:p-6">
             {totalCount > 0 ? (
-              <div className="w-56 h-56">
-                <Doughnut data={chartData} options={{ maintainAspectRatio: true }} />
+              <div className="w-48 h-48 sm:w-56 sm:h-56">
+                <Doughnut data={donutChartData} options={{ maintainAspectRatio: true }} />
               </div>
             ) : (
               <p className="text-xs sm:text-sm text-muted-foreground py-12">No tasks available to graph</p>
@@ -208,42 +301,72 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2 border-border/60 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base sm:text-lg">{isAdmin ? 'Recent Department Tasks' : 'My Recent Tasks'}</CardTitle>
-            <Link to="/tasks" className="text-xs text-primary font-semibold flex items-center hover:underline">
-              View All <ArrowRight className="h-3 w-3 ml-1" />
-            </Link>
+        {/* Right side of Pie Chart: Line Chart (Tasks Completed Over Time Trend with Mobile Responsive Selector) */}
+        <Card className="lg:col-span-2 border-border/60 shadow-sm flex flex-col justify-between">
+          <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-2 p-4 sm:p-6">
+            <div>
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-emerald-500" /> Tasks Completed Over Time
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">Task completion velocity & productivity trend</p>
+            </div>
+
+            {/* Selector: 1 Week / 1 Month */}
+            <div className="flex items-center gap-1.5 w-full sm:w-auto mt-2 sm:mt-0">
+              <select
+                value={lineTimeframe}
+                onChange={(e) => setLineTimeframe(e.target.value)}
+                className="h-8 w-full sm:w-auto rounded-md border border-input bg-background px-2.5 text-xs font-semibold focus-visible:outline-none cursor-pointer"
+              >
+                <option value="7d">1 Week (7 Days)</option>
+                <option value="30d">1 Month (30 Days)</option>
+              </select>
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="divide-y divide-border">
-              {filteredTasks.slice(0, 5).map((task) => (
-                <div key={task.id} className="py-3 flex items-center justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <Link to={`/tasks/${task.id}`} className="text-sm font-medium hover:underline block truncate">
-                      {task.title}
-                    </Link>
-                    <p className="text-xs text-muted-foreground truncate">{task.description || 'No description provided'}</p>
-                  </div>
-                  <Badge variant={task.status} className="shrink-0 text-[10px]">
-                    {task.status.replace('_', ' ').toUpperCase()}
-                  </Badge>
-                </div>
-              ))}
-              {filteredTasks.length === 0 && (
-                <p className="text-xs sm:text-sm text-muted-foreground py-8 text-center">
-                  {isAdmin ? 'No tasks assigned for this department.' : 'You have no assigned tasks currently.'}
-                </p>
-              )}
+          <CardContent className="pt-2 p-4 sm:p-6 flex-1 min-h-[220px]">
+            <div className="w-full h-full min-h-[220px]">
+              <Line data={lineChartData} options={lineChartOptions} />
             </div>
           </CardContent>
         </Card>
       </div>
 
+      {/* Lower Section: Recent Tasks List (placed below the middle chart grid!) */}
+      <Card className="border-border/60 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between p-4 sm:p-6">
+          <CardTitle className="text-base sm:text-lg">{isAdmin ? 'Recent Department Tasks' : 'My Recent Tasks'}</CardTitle>
+          <Link to="/tasks" className="text-xs text-primary font-semibold flex items-center hover:underline">
+            View All <ArrowRight className="h-3 w-3 ml-1" />
+          </Link>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+          <div className="divide-y divide-border">
+            {filteredTasks.slice(0, 5).map((task) => (
+              <div key={task.id} className="py-3 flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <Link to={`/tasks/${task.id}`} className="text-sm font-medium hover:underline block truncate">
+                    {task.title}
+                  </Link>
+                  <p className="text-xs text-muted-foreground truncate">{task.description || 'No description provided'}</p>
+                </div>
+                <Badge variant={task.status} className="shrink-0 text-[10px]">
+                  {task.status.replace('_', ' ').toUpperCase()}
+                </Badge>
+              </div>
+            ))}
+            {filteredTasks.length === 0 && (
+              <p className="text-xs sm:text-sm text-muted-foreground py-8 text-center">
+                {isAdmin ? 'No tasks assigned for this department.' : 'You have no assigned tasks currently.'}
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* DISTINCT SECTION: "Your Task / My Assigned Tasks" section at bottom for Admins */}
       {isAdmin && (
         <Card className="border-border/60 shadow-sm">
-          <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-4">
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-4 p-4 sm:p-6">
             <div>
               <CardTitle className="text-lg font-bold flex items-center gap-2">
                 <UserCheck className="h-5 w-5 text-emerald-500" /> Your Tasks (Assigned to Me)
@@ -260,7 +383,7 @@ export default function DashboardPage() {
             </Link>
           </CardHeader>
 
-          <CardContent className="pt-4">
+          <CardContent className="p-4 sm:p-6 pt-4">
             {myPersonalTasks.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {myPersonalTasks.slice(0, 8).map((task) => (
