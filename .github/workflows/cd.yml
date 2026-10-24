@@ -12,7 +12,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: SSH and Deploy to AWS EC2
+      - name: SSH and Deploy Frontend & Backend to AWS EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -36,10 +36,48 @@ jobs:
             fi
 
             # 3. Install backend production dependencies
-            cd backend
+            cd ~/app/backend
             npm ci --production
 
             # 4. Restart or start Node.js backend using PM2
             pm2 restart task-manager-backend || pm2 start server.js --name "task-manager-backend"
             pm2 save
-            echo "🚀 Deployment to AWS EC2 completed successfully!"
+
+            # 5. Build React frontend for production
+            cd ~/app/frontend
+            npm install
+            npm run build
+
+            # 6. Configure Nginx to serve React frontend + Reverse Proxy /api to Express
+            sudo bash -c 'cat > /etc/nginx/sites-available/default << "EOF"
+            server {
+                listen 80 default_server;
+                listen [::]:80 default_server;
+
+                root /home/ubuntu/app/frontend/dist;
+                index index.html;
+
+                server_name _;
+
+                location / {
+                    try_files $uri $uri/ /index.html;
+                }
+
+                location /api {
+                    proxy_pass http://localhost:5000;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Connection "upgrade";
+                    proxy_set_header Host $host;
+                    proxy_cache_bypass $http_upgrade;
+                }
+
+                location /uploads {
+                    proxy_pass http://localhost:5000/uploads;
+                }
+            }
+            EOF'
+
+            # 7. Reload Nginx
+            sudo systemctl restart nginx
+            echo "🚀 Full-Stack Deployment (Frontend + Backend) to AWS EC2 completed successfully!"
