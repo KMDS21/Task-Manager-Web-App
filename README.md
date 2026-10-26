@@ -1,6 +1,24 @@
-Task Manager Web Application
+# 🚀 Task Manager Web Application
 
 A full-stack, enterprise-grade multi-tenant task management web application built with **React 18**, **Node.js Express**, **Sequelize ORM**, and **PostgreSQL** following the **Model-View-Controller (MVC)** architectural pattern.
+
+---
+
+## 📸 Screenshots
+
+### Task Management & Workflow
+
+| Sign In & Authentication | Tasks Management Grid | Task Details & Attachments |
+| :---: | :---: | :---: |
+| <img src="frontend/Screenshot/login.png" alt="Sign in page with email and password fields" width="420"> | <img src="frontend/Screenshot/tasks-management.png" alt="Tasks Management dashboard with status filters and task cards" width="420"> | <img src="frontend/Screenshot/task-details.png" alt="Task details view with action buttons and file attachment" width="420"> |
+| <sub>Secure JWT authentication & sign in</sub> | <sub>Filterable task cards with status badges</sub> | <sub>Status workflow (Accept/Reject) & file attachments</sub> |
+
+### Administration & Organization
+
+| Admin Control Center | Department Directory | Assign New Task Modal |
+| :---: | :---: | :---: |
+| <img src="frontend/Screenshot/admin-control-center.png" alt="Admin Control Center with platform metrics and employee role management" width="420"> | <img src="frontend/Screenshot/department-directory.png" alt="Department Directory with department cards and admin assignments" width="420"> | <img src="frontend/Screenshot/assign-task.png" alt="Assign New Task modal with department employee selector" width="420"> |
+| <sub>Platform metrics, user stats, and employee role assignments</sub> | <sub>Department overview cards and staff tracking</sub> | <sub>Task delegation with department-scoped assignment</sub> |
 
 ---
 
@@ -26,9 +44,9 @@ The application follows the classic **Model-View-Controller (MVC)** architectura
 │                                                                                │
 │   VIEW (Client Side)            CONTROLLER (API Layer)           MODEL (DB)    │
 │ ┌────────────────────┐   HTTP  ┌─────────────────────┐  Sequelize ┌──────────┐ │
-│ │ React 18 UI        │────────>│ Express API         │─────────>  │ Postgre  │ │
-│ │ Pages & Components │<────────│ Controllers & Auth  │<─────────  │ Models   │ │
-│ └────────────────────┘   JSON  └─────────────────────┘ Data Objs  └──────────┘ │
+│ │ React 18 UI        │────────>│ Express API         │─────────>│ Postgre  │ │
+│ │ Pages & Components │<────────│ Controllers & Auth  │<─────────│ Models   │ │
+│ └────────────────────┘   JSON  └─────────────────────┘ Data Objs └──────────┘ │
 └────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -151,6 +169,7 @@ Task-Manager/
 │   ├── server.js             # Express App Entry Point
 │   └── package.json
 ├── frontend/
+│   ├── Screenshot/           # UI screenshots for documentation
 │   ├── src/                  # [VIEW] React UI Presentation Layer
 │   │   ├── api/              # Axios API Client
 │   │   ├── components/       # UI Components & Navigation
